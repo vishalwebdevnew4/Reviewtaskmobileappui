@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, Star, Upload, X, Camera } from 'lucide-react';
+import { submitReview } from '../services/reviewService';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface SubmitReviewScreenProps {
   task: any;
@@ -10,11 +13,77 @@ interface SubmitReviewScreenProps {
 export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps) {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
-  const handleSubmit = () => {
-    // Simulate submission
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + uploadedFiles.length > 10) {
+      toast.error('Maximum 10 files allowed');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const validFiles = files.filter((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Max size is 10MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    setUploadedFiles([...uploadedFiles, ...validFiles]);
+
+    // Create preview URLs
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrls((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
+    setPreviewUrls(previewUrls.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (!user) {
+      toast.error('Please login to submit a review');
+      onNavigate('login');
+      return;
+    }
+
+    if (rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    if (reviewText.length < 50) {
+      toast.error('Review text must be at least 50 characters');
+      return;
+    }
+
+    if (uploadedFiles.length < 2) {
+      toast.error('At least 2 images are required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await submitReview(user.uid, task.id, rating, reviewText, uploadedFiles);
+      toast.success('Review submitted successfully! It will be reviewed by our team.');
     onNavigate('myTasks');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit review');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,7 +162,18 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
           <h3 className="text-[#111111] mb-4">Upload photos/videos</h3>
           
           {/* Upload Button */}
-          <button className="w-full bg-[#F6F6F9] rounded-[16px] p-8 border-2 border-dashed border-gray-300 hover:border-[#6B4BFF] transition-all mb-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full bg-[#F6F6F9] rounded-[16px] p-8 border-2 border-dashed border-gray-300 hover:border-[#6B4BFF] transition-all mb-4"
+          >
             <div className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 bg-[#6B4BFF]/10 rounded-full flex items-center justify-center">
                 <Camera className="w-6 h-6 text-[#6B4BFF]" />
@@ -108,8 +188,19 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
             <div className="grid grid-cols-3 gap-3">
               {uploadedFiles.map((file, index) => (
                 <div key={index} className="relative">
+                  {previewUrls[index] ? (
+                    <img
+                      src={previewUrls[index]}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-[12px]"
+                    />
+                  ) : (
                   <div className="w-full h-24 bg-gray-200 rounded-[12px]"></div>
-                  <button className="absolute -top-2 -right-2 w-6 h-6 bg-[#EF4444] rounded-full flex items-center justify-center">
+                  )}
+                  <button
+                    onClick={() => handleRemoveFile(index)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-[#EF4444] rounded-full flex items-center justify-center"
+                  >
                     <X className="w-4 h-4 text-white" />
                   </button>
                 </div>
@@ -118,7 +209,7 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
           )}
           
           <p className="text-sm text-[#666666] mt-3">
-            Minimum 2 photos required
+            Minimum 2 photos required ({uploadedFiles.length} uploaded)
           </p>
         </div>
 
@@ -140,9 +231,9 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
           <Button 
             fullWidth
             onClick={handleSubmit}
-            disabled={rating === 0 || reviewText.length < 50}
+            disabled={loading || rating === 0 || reviewText.length < 50 || uploadedFiles.length < 2}
           >
-            Submit Review
+            {loading ? 'Submitting...' : 'Submit Review'}
           </Button>
         </div>
       </div>

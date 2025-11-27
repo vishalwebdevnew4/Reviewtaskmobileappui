@@ -1,0 +1,33 @@
+═══════════════════════════════════════════════════════════
+  🚨 QUICK FIX: Enable Phone Authentication
+═══════════════════════════════════════════════════════════
+
+STEP 1: Enable Phone Auth (30 seconds)
+───────────────────────────────────────
+👉 Open this link:
+   https://console.firebase.google.com/project/tournament-app-42bf9/authentication/providers
+
+   1. Click on "Phone" provider
+   2. Toggle "Enable" to ON
+   3. Click "Save"
+   4. Wait 30 seconds
+
+STEP 2: Upgrade to Blaze Plan (Required)
+─────────────────────────────────────────
+👉 Open this link:
+   https://console.firebase.google.com/project/tournament-app-42bf9/settings/usage
+
+   1. Click "Modify plan" or "Upgrade"
+   2. Select "Blaze Plan" (Pay as you go)
+   3. Add payment method
+   4. Confirm upgrade
+
+💰 Cost: First 10,000 verifications/month = FREE
+
+STEP 3: Test
+────────────
+   1. Refresh your app
+   2. Try sending OTP again
+   3. You should receive real SMS!
+
+═══════════════════════════════════════════════════════════

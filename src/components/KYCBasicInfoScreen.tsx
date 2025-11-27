@@ -1,6 +1,7 @@
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { Button } from './Button';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface KYCBasicInfoScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -8,16 +9,34 @@ interface KYCBasicInfoScreenProps {
 }
 
 export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenProps) {
+  const { user, userProfile } = useAuth();
   const [formData, setFormData] = useState({
-    fullName: '',
+    fullName: userProfile?.displayName || '',
     dob: '',
-    phone: '',
-    email: ''
+    phone: userProfile?.phoneNumber || user?.phoneNumber || '',
+    email: userProfile?.email || user?.email || ''
   });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = () => {
-    // Validate and proceed to next step
-    onNavigate('kycDocument', formData);
+    // Validate form
+    if (!formData.fullName || !formData.dob || !formData.phone || !formData.email) {
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return;
+    }
+
+    // Validate phone (should be 10 digits)
+    if (formData.phone.replace(/\D/g, '').length !== 10) {
+      return;
+    }
+
+    // Proceed to next step
+    onNavigate('kycDocument', { basicInfo: formData });
   };
 
   const isFormValid = formData.fullName && formData.dob && formData.phone && formData.email;

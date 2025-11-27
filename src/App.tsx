@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Toaster } from 'sonner';
 import { OnboardingScreens } from './components/OnboardingScreens';
 import { LoginScreen } from './components/LoginScreen';
 import { SignupScreen } from './components/SignupScreen';
@@ -16,10 +17,13 @@ import { KYCDocumentScreen } from './components/KYCDocumentScreen';
 import { KYCVerificationMethodScreen } from './components/KYCVerificationMethodScreen';
 import { KYCStatusScreen } from './components/KYCStatusScreen';
 import { WithdrawRestrictionScreen } from './components/WithdrawRestrictionScreen';
+import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState('onboarding');
-  const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [kycBasicInfo, setKycBasicInfo] = useState<any>(null);
   const [userType, setUserType] = useState('user'); // 'user' or 'company'
   const [showScreenSelector, setShowScreenSelector] = useState(false);
   const [kycStatus, setKycStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
@@ -30,6 +34,7 @@ export default function App() {
       if (data.task) setSelectedTask(data.task);
       if (data.userType) setUserType(data.userType);
       if (data.status) setKycStatus(data.status);
+      if (data.basicInfo) setKycBasicInfo(data.basicInfo);
     }
     setShowScreenSelector(false);
     
@@ -46,7 +51,23 @@ export default function App() {
         tag: 'Hot Task'
       });
     }
+
+    // Auto-navigate authenticated users away from login/signup
+    if (user && (screen === 'login' || screen === 'signup' || screen === 'onboarding')) {
+      setCurrentScreen('home');
+    }
   };
+
+  // Auto-navigate based on auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-[#666666]">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   const screens = [
     { id: 'onboarding', name: '1. Onboarding' },
@@ -72,6 +93,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      {/* Global reCAPTCHA container */}
+      <div id="recaptcha-container" style={{ display: 'none', position: 'fixed', top: '-9999px' }}></div>
       {/* Screen Selector Button */}
       <button
         onClick={() => setShowScreenSelector(!showScreenSelector)}
@@ -119,7 +142,7 @@ export default function App() {
           {currentScreen === 'companyDashboard' && <CompanyDashboard onNavigate={navigateTo} />}
           {currentScreen === 'profile' && <ProfileScreen onNavigate={navigateTo} />}
           {currentScreen === 'kycBasicInfo' && <KYCBasicInfoScreen onNavigate={navigateTo} onBack={() => navigateTo('profile')} />}
-          {currentScreen === 'kycDocument' && <KYCDocumentScreen onNavigate={navigateTo} onBack={() => navigateTo('kycBasicInfo')} />}
+          {currentScreen === 'kycDocument' && <KYCDocumentScreen onNavigate={navigateTo} onBack={() => navigateTo('kycBasicInfo')} basicInfo={kycBasicInfo} />}
           {currentScreen === 'kycVerificationMethod' && <KYCVerificationMethodScreen onNavigate={navigateTo} onBack={() => navigateTo('kycDocument')} />}
           {currentScreen === 'kycStatus' && <KYCStatusScreen onNavigate={navigateTo} onBack={() => navigateTo('home')} status='pending' />}
           {currentScreen === 'kycStatusApproved' && <KYCStatusScreen onNavigate={navigateTo} onBack={() => navigateTo('home')} status={'approved'} />}
@@ -127,6 +150,7 @@ export default function App() {
           {currentScreen === 'withdrawRestriction' && <WithdrawRestrictionScreen onNavigate={navigateTo} onBack={() => navigateTo('wallet')} />}
         </div>
       </div>
+      <Toaster position="top-center" richColors />
     </div>
   );
 }

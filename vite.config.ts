@@ -52,6 +52,8 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      // Required for Capacitor
+      emptyOutDir: true,
     },
     server: {
       port: 3000,
