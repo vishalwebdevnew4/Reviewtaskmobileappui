@@ -1,10 +1,21 @@
+<<<<<<< HEAD
 import React, { useEffect, useState } from 'react';
+=======
+import { useState, useEffect } from 'react';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 import { Navigation } from './Navigation';
 import { Button } from './Button';
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+<<<<<<< HEAD
 import { walletQueries, surveyQueries } from '../db/queries';
+=======
+import { getUserEarnings, getEarningsByCategory } from '../services/userService';
+import { getUserReviews } from '../services/reviewService';
+import { getUserWithdrawals } from '../services/withdrawalService';
+import { toast } from 'sonner';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface WalletScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -12,12 +23,23 @@ interface WalletScreenProps {
 
 export function WalletScreen({ onNavigate }: WalletScreenProps) {
   const { user } = useAuth();
+<<<<<<< HEAD
   const [balance, setBalance] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
+=======
+  const [earnings, setEarnings] = useState({
+    totalEarnings: 0,
+    availableBalance: 0,
+    pendingEarnings: 0,
+    withdrawnAmount: 0,
+  });
+  const [earningsData, setEarningsData] = useState<Array<{ name: string; value: number; color: string }>>([]);
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+<<<<<<< HEAD
     if (user?.id) {
       loadWalletData();
     } else {
@@ -57,10 +79,68 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
       })));
     } catch (error) {
       console.error('Error loading wallet data:', error);
+=======
+    if (user) {
+      loadWalletData();
+    }
+  }, [user]);
+
+  const loadWalletData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const [earningsData, categoryEarnings, reviews, withdrawals] = await Promise.all([
+        getUserEarnings(user.uid),
+        getEarningsByCategory(user.uid),
+        getUserReviews(user.uid),
+        getUserWithdrawals(user.uid),
+      ]);
+
+      setEarnings(earningsData);
+
+      // Format category earnings for chart
+      const chartData = Object.entries(categoryEarnings).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value: value as number,
+        color: getColorForCategory(name),
+      }));
+      setEarningsData(chartData);
+
+      // Combine reviews and withdrawals into transactions
+      const reviewTransactions = reviews
+        .filter((r) => r.status === 'approved')
+        .map((r) => ({
+          id: r.id,
+          type: 'credit' as const,
+          title: `Review Reward`,
+          amount: r.rewardAmount,
+          date: formatDate(r.createdAt),
+          status: 'completed',
+        }));
+
+      const withdrawalTransactions = withdrawals.map((w) => ({
+        id: w.id,
+        type: 'debit' as const,
+        title: `Withdrawn to ${w.method.toUpperCase()}`,
+        amount: w.amount,
+        date: formatDate(w.requestedAt),
+        status: w.status,
+      }));
+
+      const allTransactions = [...reviewTransactions, ...withdrawalTransactions]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10); // Show last 10 transactions
+
+      setTransactions(allTransactions);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load wallet data');
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
     } finally {
       setLoading(false);
     }
   };
+<<<<<<< HEAD
   // Calculate earnings by category from surveys
   const earningsData = [
     { name: 'Tech', value: 0, color: '#6B4BFF' },
@@ -68,6 +148,37 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
     { name: 'Health', value: 0, color: '#22C55E' },
     { name: 'Fashion', value: 0, color: '#EF4444' },
   ];
+=======
+
+  const getColorForCategory = (category: string): string => {
+    const colors: Record<string, string> = {
+      tech: '#6B4BFF',
+      food: '#FFB93F',
+      health: '#22C55E',
+      fashion: '#EF4444',
+      apps: '#8B5CF6',
+    };
+    return colors[category] || '#6B4BFF';
+  };
+
+  const formatDate = (date: Date): string => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours === 0) {
+        const minutes = Math.floor(diff / (1000 * 60));
+        return `${minutes} minutes ago`;
+      }
+      return `Today, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   return (
     <div className="h-full bg-[#F6F6F9] pb-20 overflow-y-auto">
@@ -80,17 +191,31 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm opacity-90 mb-1">Total Earnings</p>
+<<<<<<< HEAD
               <h2 className="text-4xl">₹{totalEarned.toLocaleString()}</h2>
+=======
+              <h2 className="text-4xl">
+                {loading ? '...' : `₹${earnings.totalEarnings.toLocaleString()}`}
+              </h2>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Wallet className="w-6 h-6" />
             </div>
           </div>
+<<<<<<< HEAD
           {loading && (
             <div className="flex items-center gap-2 text-sm opacity-75">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               <span>Loading...</span>
             </div>
+=======
+          {earnings.pendingEarnings > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <TrendingUp className="w-4 h-4" />
+              <span>₹{earnings.pendingEarnings} pending approval</span>
+          </div>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
           )}
         </div>
 
@@ -99,12 +224,19 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[#666666] text-sm mb-1">Available Balance</p>
+<<<<<<< HEAD
               <h3 className="text-[#111111]">₹{balance.toLocaleString()}</h3>
+=======
+              <h3 className="text-[#111111]">
+                {loading ? '...' : `₹${earnings.availableBalance.toLocaleString()}`}
+              </h3>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             </div>
             <Button
               size="sm"
               onClick={() => onNavigate('withdraw')}
               icon={<ArrowUpRight className="w-4 h-4" />}
+              disabled={earnings.availableBalance < 100}
             >
               Withdraw
             </Button>
@@ -113,6 +245,7 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
       </div>
 
       {/* Earnings Breakdown */}
+      {earningsData.length > 0 && (
       <div className="px-6 py-6">
         <h2 className="text-[#111111] mb-4">Earnings by Category</h2>
         <div className="bg-white rounded-[20px] p-6 shadow-md">
@@ -156,11 +289,13 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Transaction History */}
       <div className="px-6 pb-6">
         <h2 className="text-[#111111] mb-4">Transaction History</h2>
         {loading ? (
+<<<<<<< HEAD
           <div className="text-center py-8">
             <div className="w-12 h-12 border-4 border-[#6B4BFF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-[#666666]">Loading transactions...</p>
@@ -176,6 +311,14 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
         ) : (
           <div className="space-y-3">
             {transactions.map((transaction) => (
+=======
+          <div className="text-center py-8 text-[#666666]">Loading transactions...</div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-8 text-[#666666]">No transactions yet</div>
+        ) : (
+        <div className="space-y-3">
+          {transactions.map((transaction) => (
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             <div
               key={transaction.id}
               className="bg-white rounded-[20px] p-4 shadow-md"
@@ -222,7 +365,11 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
               </div>
             </div>
           ))}
+<<<<<<< HEAD
           </div>
+=======
+        </div>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
         )}
       </div>
 

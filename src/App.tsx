@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+=======
+import { useState } from 'react';
+import { Toaster } from 'sonner';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 import { OnboardingScreens } from './components/OnboardingScreens';
 import { LoginScreen } from './components/LoginScreen';
 import { SignupScreen } from './components/SignupScreen';
@@ -18,6 +23,7 @@ import { KYCDocumentScreen } from './components/KYCDocumentScreen';
 import { KYCVerificationMethodScreen } from './components/KYCVerificationMethodScreen';
 import { KYCStatusScreen } from './components/KYCStatusScreen';
 import { WithdrawRestrictionScreen } from './components/WithdrawRestrictionScreen';
+<<<<<<< HEAD
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { HelpSupportScreen } from './components/HelpSupportScreen';
@@ -30,11 +36,20 @@ import { LoginActivityScreen } from './components/LoginActivityScreen';
 import { ForgotPasswordScreen } from './components/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './components/ResetPasswordScreen';
 import { ResetPasswordOTPScreen } from './components/ResetPasswordOTPScreen';
+=======
+import { useAuth } from './contexts/AuthContext';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState('onboarding');
+<<<<<<< HEAD
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedTaskId, setSelectedTaskId] = useState(undefined);
+=======
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [kycBasicInfo, setKycBasicInfo] = useState<any>(null);
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   const [userType, setUserType] = useState('user'); // 'user' or 'company'
   const [showScreenSelector, setShowScreenSelector] = useState(false);
   const [kycStatus, setKycStatus] = useState('pending');
@@ -63,9 +78,13 @@ export default function App() {
       if (data.taskId) setSelectedTaskId(data.taskId);
       if (data.userType) setUserType(data.userType);
       if (data.status) setKycStatus(data.status);
+<<<<<<< HEAD
       if (data.resetToken) setResetToken(data.resetToken);
       if (data.email) setResetEmail(data.email);
       if (data.userId) setResetUserId(data.userId);
+=======
+      if (data.basicInfo) setKycBasicInfo(data.basicInfo);
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
     }
     setShowScreenSelector(false);
     
@@ -82,7 +101,23 @@ export default function App() {
         tag: 'Hot Task'
       });
     }
+
+    // Auto-navigate authenticated users away from login/signup
+    if (user && (screen === 'login' || screen === 'signup' || screen === 'onboarding')) {
+      setCurrentScreen('home');
+    }
   };
+
+  // Auto-navigate based on auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-[#666666]">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   const screens = [
     { id: 'onboarding', name: '1. Onboarding' },
@@ -114,8 +149,22 @@ export default function App() {
         { id: 'surveyManagement', name: '24. Survey Management' },
   ];
 
+<<<<<<< HEAD
   const isNative = Capacitor.isNativePlatform();
   const isWeb = !isNative;
+=======
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      {/* Global reCAPTCHA container */}
+      <div id="recaptcha-container" style={{ display: 'none', position: 'fixed', top: '-9999px' }}></div>
+      {/* Screen Selector Button */}
+      <button
+        onClick={() => setShowScreenSelector(!showScreenSelector)}
+        className="fixed top-4 right-4 z-50 bg-[#6B4BFF] text-white px-6 py-3 rounded-[16px] shadow-lg hover:bg-[#5a3edb] transition-all"
+      >
+        📱 Screens
+      </button>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   return (
     <div className={`${isWeb ? 'min-h-screen bg-white flex items-center justify-center p-4' : 'h-screen bg-white'}`}>
@@ -174,7 +223,7 @@ export default function App() {
           {currentScreen === 'profile' && <ProfileScreen onNavigate={navigateTo} />}
           {currentScreen === 'editProfile' && <EditProfileScreen onNavigate={navigateTo} onBack={() => navigateTo('profile')} />}
           {currentScreen === 'kycBasicInfo' && <KYCBasicInfoScreen onNavigate={navigateTo} onBack={() => navigateTo('profile')} />}
-          {currentScreen === 'kycDocument' && <KYCDocumentScreen onNavigate={navigateTo} onBack={() => navigateTo('kycBasicInfo')} />}
+          {currentScreen === 'kycDocument' && <KYCDocumentScreen onNavigate={navigateTo} onBack={() => navigateTo('kycBasicInfo')} basicInfo={kycBasicInfo} />}
           {currentScreen === 'kycVerificationMethod' && <KYCVerificationMethodScreen onNavigate={navigateTo} onBack={() => navigateTo('kycDocument')} />}
           {currentScreen === 'kycStatus' && <KYCStatusScreen onNavigate={navigateTo} onBack={() => navigateTo('profile')} status={kycStatus} />}
           {currentScreen === 'kycStatusApproved' && <KYCStatusScreen onNavigate={navigateTo} onBack={() => navigateTo('profile')} status={'approved'} />}
@@ -225,6 +274,7 @@ export default function App() {
           )}
         </div>
       </div>
+      <Toaster position="top-center" richColors />
     </div>
   );
 }

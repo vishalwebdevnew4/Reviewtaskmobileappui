@@ -1,38 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, Smartphone, Building2, Wallet } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { walletQueries, kycQueries } from '../db/queries';
 
 interface WithdrawScreenProps {
   onNavigate: (screen: string, data?: any) => void;
 }
 
 export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
-  const { user } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState('upi');
   const [amount, setAmount] = useState('');
-  const [balance, setBalance] = useState(0);
-  const [accountDetails, setAccountDetails] = useState({
-    upi: '',
-    accountNumber: '',
-    ifsc: '',
-    paytm: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [kycApproved, setKycApproved] = useState(false);
-
-  useEffect(() => {
-    if (user?.id) {
-      const currentBalance = walletQueries.getBalance(user.id);
-      setBalance(currentBalance);
-      
-      // Check KYC status
-      const kycInfo = kycQueries.getKYCInfo(user.id);
-      setKycApproved(kycInfo?.status === 'approved');
-    }
-  }, [user]);
 
   const withdrawMethods = [
     { id: 'upi', icon: <Smartphone className="w-6 h-6" />, label: 'UPI', description: 'Instant transfer' },
@@ -40,12 +16,7 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
     { id: 'paytm', icon: <Wallet className="w-6 h-6" />, label: 'Paytm', description: 'Instant transfer' },
   ];
 
-  const quickAmounts = balance > 0 ? [
-    Math.min(500, balance),
-    Math.min(1000, balance),
-    Math.min(2000, balance),
-    balance
-  ].filter((amt, index, arr) => amt > 0 && arr.indexOf(amt) === index) : [];
+  const quickAmounts = [500, 1000, 2000, 2450];
 
   return (
     <div className="h-full bg-[#F6F6F9] overflow-y-auto pb-24">
@@ -73,7 +44,7 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
         {/* Available Balance */}
         <div className="bg-gradient-to-br from-[#6B4BFF] to-[#8B6BFF] rounded-[24px] p-6 text-white">
           <p className="text-sm opacity-90 mb-1">Available Balance</p>
-          <h2 className="text-4xl">₹{balance.toLocaleString()}</h2>
+          <h2 className="text-4xl">₹2,450</h2>
         </div>
 
         {/* Amount Input */}
@@ -101,19 +72,17 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
           {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
           {/* Quick Amount Buttons */}
-          {quickAmounts.length > 0 && (
-            <div className={`grid gap-2 ${quickAmounts.length === 4 ? 'grid-cols-4' : quickAmounts.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              {quickAmounts.map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => setAmount(amt.toString())}
-                  className="bg-[#F6F6F9] rounded-[12px] py-3 text-[#111111] hover:bg-[#6B4BFF] hover:text-white transition-all"
-                >
-                  ₹{amt}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-4 gap-2">
+            {quickAmounts.map((amt) => (
+              <button
+                key={amt}
+                onClick={() => setAmount(amt.toString())}
+                className="bg-[#F6F6F9] rounded-[12px] py-3 text-[#111111] hover:bg-[#6B4BFF] hover:text-white transition-all"
+              >
+                ₹{amt}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Withdrawal Method */}
@@ -171,6 +140,8 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
                 value={accountDetails.upi}
                 onChange={(e) => setAccountDetails({ ...accountDetails, upi: e.target.value })}
                 placeholder="yourname@upi"
+                value={accountDetails.upiId}
+                onChange={(e) => setAccountDetails({ ...accountDetails, upiId: e.target.value })}
                 className="flex-1 bg-transparent outline-none text-[#111111]"
               />
             </div>
@@ -187,6 +158,8 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
                   value={accountDetails.accountNumber}
                   onChange={(e) => setAccountDetails({ ...accountDetails, accountNumber: e.target.value })}
                   placeholder="Enter account number"
+                  value={accountDetails.accountNumber}
+                  onChange={(e) => setAccountDetails({ ...accountDetails, accountNumber: e.target.value })}
                   className="flex-1 bg-transparent outline-none text-[#111111]"
                 />
               </div>
@@ -199,6 +172,8 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
                   value={accountDetails.ifsc}
                   onChange={(e) => setAccountDetails({ ...accountDetails, ifsc: e.target.value.toUpperCase() })}
                   placeholder="Enter IFSC code"
+                  value={accountDetails.ifscCode}
+                  onChange={(e) => setAccountDetails({ ...accountDetails, ifscCode: e.target.value.toUpperCase() })}
                   className="flex-1 bg-transparent outline-none text-[#111111]"
                 />
               </div>
@@ -216,6 +191,8 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
                 value={accountDetails.paytm}
                 onChange={(e) => setAccountDetails({ ...accountDetails, paytm: e.target.value.replace(/\D/g, '').substring(0, 10) })}
                 placeholder="Enter mobile number"
+                value={accountDetails.paytmNumber}
+                onChange={(e) => setAccountDetails({ ...accountDetails, paytmNumber: e.target.value.replace(/\D/g, '') })}
                 className="flex-1 bg-transparent outline-none text-[#111111]"
                 maxLength={10}
               />
@@ -245,78 +222,10 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
           <Button 
             fullWidth
             onClick={() => {
-              if (!user?.id) {
-                setError('User not found');
-                return;
-              }
-
-              if (!kycApproved) {
-                setError('KYC verification required');
-                onNavigate('kycBasicInfo');
-                return;
-              }
-
-              const withdrawAmount = parseFloat(amount);
-              if (!amount || withdrawAmount < 100) {
-                setError('Minimum withdrawal is ₹100');
-                return;
-              }
-
-              if (withdrawAmount > balance) {
-                setError('Amount exceeds available balance');
-                return;
-              }
-
-              // Validate account details
-              if (selectedMethod === 'upi' && !accountDetails.upi.includes('@')) {
-                setError('Please enter a valid UPI ID');
-                return;
-              }
-
-              if (selectedMethod === 'bank' && (!accountDetails.accountNumber || !accountDetails.ifsc)) {
-                setError('Please enter account number and IFSC code');
-                return;
-              }
-
-              if (selectedMethod === 'paytm' && accountDetails.paytm.length !== 10) {
-                setError('Please enter a valid 10-digit mobile number');
-                return;
-              }
-
-              setLoading(true);
-              setError('');
-
-              try {
-                const accountDetailsStr = selectedMethod === 'upi' 
-                  ? accountDetails.upi 
-                  : selectedMethod === 'bank'
-                  ? `${accountDetails.accountNumber}|${accountDetails.ifsc}`
-                  : accountDetails.paytm;
-
-                // Add withdrawal transaction with status tracking
-                walletQueries.addTransaction({
-                  userId: user.id,
-                  amount: withdrawAmount,
-                  type: 'debit',
-                  description: `Withdrawal via ${selectedMethod.toUpperCase()}`,
-                  status: 'pending',
-                  withdrawalMethod: selectedMethod,
-                  accountDetails: accountDetailsStr
-                });
-
-                // Update balance
-                setBalance(balance - withdrawAmount);
-                
-                // Show success and navigate
-                setTimeout(() => {
-                  onNavigate('wallet');
-                }, 1000);
-              } catch (err: any) {
-                setError(err.message || 'Failed to process withdrawal');
-                setLoading(false);
-              }
+              // Simulate withdrawal
+              onNavigate('wallet');
             }}
-            disabled={!amount || parseFloat(amount) < 100 || parseFloat(amount) > balance || loading || !kycApproved}
+            disabled={!amount || parseFloat(amount) < 100}
           >
             {loading ? 'Processing...' : 'Request Withdrawal'}
           </Button>

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import { useState, useEffect } from 'react';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 import { Navigation } from './Navigation';
 import { WalletCard } from './WalletCard';
 import { CategoryChip } from './CategoryChip';
@@ -6,6 +10,10 @@ import { TaskCard } from './TaskCard';
 import { useAuth } from '../contexts/AuthContext';
 import { taskQueries, walletQueries } from '../db/queries';
 import { Bell, Search, Smartphone, UtensilsCrossed, Heart, Shirt, Laptop, Briefcase } from 'lucide-react';
+import { getTasksByCategory, getFeaturedTasks, Task } from '../services/taskService';
+import { useAuth } from '../contexts/AuthContext';
+import { getUserEarnings } from '../services/userService';
+import { toast } from 'sonner';
 
 interface HomeScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -14,6 +22,7 @@ interface HomeScreenProps {
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState('all');
+<<<<<<< HEAD
   const [tasks, setTasks] = useState<any[]>([]);
   const [allTasks, setAllTasks] = useState<any[]>([]);
   const [balance, setBalance] = useState(0);
@@ -49,6 +58,13 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     }
     setLoading(false);
   }, [user, activeCategory, searchQuery]);
+=======
+  const [featuredTasks, setFeaturedTasks] = useState<Task[]>([]);
+  const [latestTasks, setLatestTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const { user, userProfile } = useAuth();
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   const categories = [
     { id: 'all', icon: <Briefcase className="w-5 h-5" />, label: 'All' },
@@ -59,13 +75,63 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     { id: 'apps', icon: <Laptop className="w-5 h-5" />, label: 'Apps' },
   ];
 
+<<<<<<< HEAD
+=======
+  useEffect(() => {
+    loadTasks();
+    loadBalance();
+  }, [activeCategory, user]);
+
+  const loadTasks = async () => {
+    setLoading(true);
+    try {
+      const [featured, latest] = await Promise.all([
+        getFeaturedTasks(),
+        getTasksByCategory(activeCategory),
+      ]);
+      setFeaturedTasks(featured);
+      setLatestTasks(latest);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBalance = async () => {
+    if (!user) return;
+    try {
+      const earnings = await getUserEarnings(user.uid);
+      setBalance(earnings.availableBalance);
+    } catch (error) {
+      // Silent fail for balance
+    }
+  };
+
+  const formatDeadline = (deadline: Date) => {
+    const now = new Date();
+    const diff = deadline.getTime() - now.getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    if (days < 0) return 'Expired';
+    if (days === 0) return 'Due today';
+    if (days === 1) return 'Due tomorrow';
+    return `Due in ${days} days`;
+  };
+
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   return (
     <div className="h-full bg-[#F6F6F9] pb-20 overflow-y-auto">
       {/* Header */}
       <div className="bg-white px-6 pt-8 pb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
+<<<<<<< HEAD
             <h1 className="text-[#111111]">Hi, {userName} 👋</h1>
+=======
+            <h1 className="text-[#111111]">
+              Hi, {userProfile?.displayName || user?.displayName || 'User'} 👋
+            </h1>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             <p className="text-[#666666]">Ready to earn today?</p>
           </div>
           <div className="flex gap-3">
@@ -129,6 +195,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
       </div>
 
       {/* Featured Tasks */}
+<<<<<<< HEAD
           {tasks.length > 0 && (
             <div className="px-6 pb-6">
               <div className="flex items-center justify-between mb-4">
@@ -154,10 +221,37 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
             ))}
           </div>
         </div>
+=======
+      {featuredTasks.length > 0 && (
+      <div className="px-6 pb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[#111111]">Featured Tasks</h2>
+          <button className="text-[#6B4BFF] text-sm">View All</button>
+        </div>
+          {loading ? (
+            <div className="text-center py-8 text-[#666666]">Loading tasks...</div>
+          ) : (
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          {featuredTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+                  task={{
+                    ...task,
+                    deadline: formatDeadline(task.deadline),
+                  }}
+              onViewDetails={(task) => onNavigate('taskDetails', { task })}
+              compact
+            />
+          ))}
+        </div>
+          )}
+      </div>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       )}
 
       {/* Latest Tasks */}
       <div className="px-6 pb-6">
+<<<<<<< HEAD
         <h2 className="text-[#111111] mb-4">All Tasks</h2>
         {loading ? (
           <div className="text-center py-12">
@@ -182,6 +276,26 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
               />
             ))}
           </div>
+=======
+        <h2 className="text-[#111111] mb-4">Latest Tasks</h2>
+        {loading ? (
+          <div className="text-center py-8 text-[#666666]">Loading tasks...</div>
+        ) : latestTasks.length === 0 ? (
+          <div className="text-center py-8 text-[#666666]">No tasks available</div>
+        ) : (
+        <div className="space-y-4">
+          {latestTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+                task={{
+                  ...task,
+                  deadline: formatDeadline(task.deadline),
+                }}
+              onViewDetails={(task) => onNavigate('taskDetails', { task })}
+            />
+          ))}
+        </div>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
         )}
       </div>
 

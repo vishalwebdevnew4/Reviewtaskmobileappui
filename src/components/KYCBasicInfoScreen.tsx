@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, User, Mail, Smartphone, MapPin } from 'lucide-react';
 import { Button } from './Button';
+<<<<<<< HEAD
 import { useAuth } from '../contexts/AuthContext';
 import { kycQueries } from '../db/queries';
+=======
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface KYCBasicInfoScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -10,21 +15,32 @@ interface KYCBasicInfoScreenProps {
 }
 
 export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenProps) {
+<<<<<<< HEAD
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
+=======
+  const { user, userProfile } = useAuth();
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   const [formData, setFormData] = useState({
-    fullName: '',
+    fullName: userProfile?.displayName || '',
     dob: '',
+<<<<<<< HEAD
     phone: '',
     email: '',
     address: '',
     city: '',
     state: '',
     pincode: ''
+=======
+    phone: userProfile?.phoneNumber || user?.phoneNumber || '',
+    email: userProfile?.email || user?.email || ''
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   });
+  const [loading, setLoading] = useState(false);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (user) {
       // Pre-fill with user data
@@ -49,6 +65,27 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
       [field]: value
     }));
     setError('');
+=======
+  const handleSubmit = () => {
+    // Validate form
+    if (!formData.fullName || !formData.dob || !formData.phone || !formData.email) {
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return;
+    }
+
+    // Validate phone (should be 10 digits)
+    if (formData.phone.replace(/\D/g, '').length !== 10) {
+      return;
+    }
+
+    // Proceed to next step
+    onNavigate('kycDocument', { basicInfo: formData });
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   };
 
   const handlePhoneChange = (value: string) => {

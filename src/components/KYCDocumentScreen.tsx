@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Upload, Check, CreditCard, FileText, BookOpen, IdCard, X } from 'lucide-react';
 import { Button } from './Button';
+<<<<<<< HEAD
 import { useAuth } from '../contexts/AuthContext';
 import { kycQueries } from '../db/queries';
+=======
+import { useState, useRef } from 'react';
+import { submitKYC } from '../services/kycService';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface KYCDocumentScreenProps {
   onNavigate: (screen: string, data?: any) => void;
   onBack: () => void;
+  basicInfo?: {
+    fullName: string;
+    dob: string;
+    phone: string;
+    email: string;
+  };
 }
 
-type DocumentType = 'aadhaar' | 'pan' | 'passport' | 'license' | null;
+type DocumentType = 'aadhaar' | 'pan' | null;
 
+<<<<<<< HEAD
 export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps) {
   const { user } = useAuth();
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -20,6 +34,18 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
   const [frontImage, setFrontImage] = useState(null);
   const [backImage, setBackImage] = useState(null);
   const [error, setError] = useState('');
+=======
+export function KYCDocumentScreen({ onNavigate, onBack, basicInfo }: KYCDocumentScreenProps) {
+  const { user } = useAuth();
+  const [selectedDocument, setSelectedDocument] = useState<DocumentType>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   const documents = [
     {
@@ -38,6 +64,7 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
       requiresBoth: false,
       numberPlaceholder: 'ABCDE1234F'
     },
+<<<<<<< HEAD
     {
       id: 'passport' as DocumentType,
       name: 'Passport',
@@ -93,10 +120,49 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
   const handleContinue = () => {
     if (!user?.id) {
       setError('User not found. Please login again.');
+=======
+  ];
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload JPG, PNG or PDF file');
+      return;
+    }
+
+    if (side === 'front') {
+      setFrontFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setFrontPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setBackFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setBackPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !basicInfo) {
+      toast.error('Please login and complete basic info first');
+      onBack();
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       return;
     }
 
     if (!selectedDocument) {
+<<<<<<< HEAD
       setError('Please select a document type');
       return;
     }
@@ -151,11 +217,50 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
       onNavigate('kycStatus');
     } catch (err: any) {
       setError(err.message || 'Failed to save');
+=======
+      toast.error('Please select a document type');
+      return;
+    }
+
+    if (!frontFile) {
+      toast.error('Please upload front side of document');
+      return;
+    }
+
+    const selectedDoc = documents.find(d => d.id === selectedDocument);
+    if (selectedDoc?.requiresBoth && !backFile) {
+      toast.error('Please upload back side of document');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await submitKYC(
+        user.uid,
+        basicInfo.fullName,
+        basicInfo.dob,
+        basicInfo.phone,
+        basicInfo.email,
+        selectedDocument,
+        frontFile,
+        backFile || frontFile // Use front file if back not required
+      );
+      toast.success('KYC submitted successfully!');
+      onNavigate('kycStatus', { status: 'pending' });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit KYC');
+    } finally {
+      setLoading(false);
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
     }
   };
 
   const selectedDoc = documents.find(d => d.id === selectedDocument);
+<<<<<<< HEAD
   const canContinue = selectedDocument && documentNumber.trim();
+=======
+  const canContinue = selectedDocument && frontFile && (!selectedDoc?.requiresBoth || backFile);
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   return (
     <div className="h-full bg-[#F6F6F9] flex flex-col">
@@ -252,8 +357,13 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
               {/* Front Side */}
               <div className="bg-white rounded-[20px] p-6 shadow-md">
                 <div className="flex items-center justify-between mb-4">
+<<<<<<< HEAD
                   <h3 className="text-[#111111]">Front Side <span className="text-xs text-[#666666] font-normal">(Optional)</span></h3>
                   {uploadedFront && (
+=======
+                  <h3 className="text-[#111111]">Front Side</h3>
+                  {frontFile && (
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                     <div className="flex items-center gap-2 text-[#22C55E]">
                       <Check className="w-5 h-5" />
                       <span className="text-sm">Uploaded</span>
@@ -261,6 +371,7 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                   )}
                 </div>
                 
+<<<<<<< HEAD
                 {!uploadedFront ? (
                   <label className="block w-full aspect-[3/2] border-2 border-dashed border-[#E5E5E5] rounded-[12px] flex flex-col items-center justify-center gap-3 hover:border-[#6B4BFF] hover:bg-[#6B4BFF]/5 transition-colors cursor-pointer">
                     <input
@@ -269,6 +380,20 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                       onChange={(e) => handleFileUpload('front', e)}
                       className="hidden"
                     />
+=======
+                <input
+                  ref={frontInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => handleFileSelect(e, 'front')}
+                  className="hidden"
+                />
+                {!frontFile ? (
+                  <button
+                    onClick={() => frontInputRef.current?.click()}
+                    className="w-full aspect-[3/2] border-2 border-dashed border-[#E5E5E5] rounded-[12px] flex flex-col items-center justify-center gap-3 hover:border-[#6B4BFF] hover:bg-[#6B4BFF]/5 transition-colors"
+                  >
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                     <div className="w-12 h-12 bg-[#6B4BFF]/10 rounded-full flex items-center justify-center">
                       <Upload className="w-6 h-6 text-[#6B4BFF]" />
                     </div>
@@ -278,6 +403,7 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                     </div>
                   </label>
                 ) : (
+<<<<<<< HEAD
                   <div className="w-full aspect-[3/2] bg-[#F6F6F9] rounded-[12px] flex items-center justify-center relative">
                     {frontImage && frontImage.startsWith('data:image') ? (
                       <img 
@@ -302,6 +428,27 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                     >
                       <X className="w-4 h-4" />
                     </button>
+=======
+                  <div className="w-full aspect-[3/2] bg-[#F6F6F9] rounded-[12px] overflow-hidden relative">
+                    {frontPreview && (
+                      <img
+                        src={frontPreview}
+                        alt="Front document"
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                    <div className="absolute bottom-2 right-2 flex gap-2">
+                      <button
+                        onClick={() => {
+                          setFrontFile(null);
+                          setFrontPreview(null);
+                        }}
+                        className="px-3 py-1 bg-[#EF4444] text-white rounded-[8px] text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                   </div>
                 )}
               </div>
@@ -310,8 +457,13 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
               {selectedDoc?.requiresBoth && (
                 <div className="bg-white rounded-[20px] p-6 shadow-md">
                   <div className="flex items-center justify-between mb-4">
+<<<<<<< HEAD
                     <h3 className="text-[#111111]">Back Side <span className="text-xs text-[#666666] font-normal">(Optional)</span></h3>
                     {uploadedBack && (
+=======
+                    <h3 className="text-[#111111]">Back Side</h3>
+                    {backFile && (
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                       <div className="flex items-center gap-2 text-[#22C55E]">
                         <Check className="w-5 h-5" />
                         <span className="text-sm">Uploaded</span>
@@ -319,6 +471,7 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                     )}
                   </div>
                   
+<<<<<<< HEAD
                   {!uploadedBack ? (
                     <label className="block w-full aspect-[3/2] border-2 border-dashed border-[#E5E5E5] rounded-[12px] flex flex-col items-center justify-center gap-3 hover:border-[#6B4BFF] hover:bg-[#6B4BFF]/5 transition-colors cursor-pointer">
                       <input
@@ -327,6 +480,20 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                         onChange={(e) => handleFileUpload('back', e)}
                         className="hidden"
                       />
+=======
+                  <input
+                    ref={backInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleFileSelect(e, 'back')}
+                    className="hidden"
+                  />
+                  {!backFile ? (
+                    <button
+                      onClick={() => backInputRef.current?.click()}
+                      className="w-full aspect-[3/2] border-2 border-dashed border-[#E5E5E5] rounded-[12px] flex flex-col items-center justify-center gap-3 hover:border-[#6B4BFF] hover:bg-[#6B4BFF]/5 transition-colors"
+                    >
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                       <div className="w-12 h-12 bg-[#6B4BFF]/10 rounded-full flex items-center justify-center">
                         <Upload className="w-6 h-6 text-[#6B4BFF]" />
                       </div>
@@ -336,6 +503,7 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                       </div>
                     </label>
                   ) : (
+<<<<<<< HEAD
                     <div className="w-full aspect-[3/2] bg-[#F6F6F9] rounded-[12px] flex items-center justify-center relative">
                       {backImage && backImage.startsWith('data:image') ? (
                         <img 
@@ -360,6 +528,27 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
                       >
                         <X className="w-4 h-4" />
                       </button>
+=======
+                    <div className="w-full aspect-[3/2] bg-[#F6F6F9] rounded-[12px] overflow-hidden relative">
+                      {backPreview && (
+                        <img
+                          src={backPreview}
+                          alt="Back document"
+                          className="w-full h-full object-contain"
+                        />
+                      )}
+                      <div className="absolute bottom-2 right-2 flex gap-2">
+                        <button
+                          onClick={() => {
+                            setBackFile(null);
+                            setBackPreview(null);
+                          }}
+                          className="px-3 py-1 bg-[#EF4444] text-white rounded-[8px] text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                     </div>
                   )}
                 </div>
@@ -394,10 +583,10 @@ export function KYCDocumentScreen({ onNavigate, onBack }: KYCDocumentScreenProps
         {selectedDocument && (
           <Button
             fullWidth
-            onClick={handleContinue}
-            disabled={!canContinue}
+            onClick={handleSubmit}
+            disabled={loading || !canContinue}
           >
-            Continue to Verification
+            {loading ? 'Submitting...' : 'Submit KYC'}
           </Button>
         )}
         <Button

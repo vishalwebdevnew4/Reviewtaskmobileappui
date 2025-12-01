@@ -3,6 +3,7 @@
   import { GoogleOAuthProvider } from '@react-oauth/google';
   import App from "./App.tsx";
   import "./index.css";
+<<<<<<< HEAD
   import { initDatabase } from "./db/database";
   import { AuthProvider } from "./contexts/AuthContext";
   import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -84,4 +85,13 @@
     // Render app anyway
     renderApp();
   }
+=======
+  import { AuthProvider } from "./contexts/AuthContext.tsx";
+
+  createRoot(document.getElementById("root")!).render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+>>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   
