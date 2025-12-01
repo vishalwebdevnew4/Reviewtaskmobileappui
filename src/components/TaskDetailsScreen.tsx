@@ -1,6 +1,9 @@
+import React from 'react';
 import { Button } from './Button';
 import { ArrowLeft, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useAuth } from '../contexts/AuthContext';
+import { userTaskQueries } from '../db/queries';
 
 interface TaskDetailsScreenProps {
   task: any;
@@ -8,10 +11,20 @@ interface TaskDetailsScreenProps {
 }
 
 export function TaskDetailsScreen({ task, onNavigate }: TaskDetailsScreenProps) {
+  const { user } = useAuth();
+  
   if (!task) return null;
 
+  const handleSubmitSurvey = () => {
+    if (user?.id && task.id) {
+      // Assign task to user if not already assigned
+      userTaskQueries.assignTask(user.id, parseInt(task.id));
+    }
+    onNavigate('submitSurvey', { task });
+  };
+
   const requirements = [
-    'Write a detailed review (minimum 50 words)',
+    'Write a detailed survey response (minimum 50 words)',
     'Rate the product honestly (1-5 stars)',
     'Upload at least 2 photos',
     'Submit within the deadline'
@@ -62,7 +75,7 @@ export function TaskDetailsScreen({ task, onNavigate }: TaskDetailsScreenProps) 
         <div className="bg-white rounded-[20px] p-6">
           <h3 className="text-[#111111] mb-3">Task Description</h3>
           <p className="text-[#666666]">
-            We need your honest opinion about this product. Your review will help other customers make informed decisions. 
+            We need your honest opinion about this product. Your survey response will help us improve our products and services. 
             Please provide detailed feedback about your experience, including what you liked and what could be improved.
           </p>
         </div>
@@ -95,7 +108,7 @@ export function TaskDetailsScreen({ task, onNavigate }: TaskDetailsScreenProps) 
           <div>
             <h3 className="text-[#FFB93F] mb-1">Important</h3>
             <p className="text-[#666666] text-sm">
-              Fake or spam reviews will result in account suspension. Please provide genuine feedback only.
+              Fake or spam survey responses will result in account suspension. Please provide genuine feedback only.
             </p>
           </div>
         </div>
@@ -106,9 +119,9 @@ export function TaskDetailsScreen({ task, onNavigate }: TaskDetailsScreenProps) 
         <div className="max-w-[414px] mx-auto">
           <Button 
             fullWidth
-            onClick={() => onNavigate('submitReview', { task })}
+            onClick={handleSubmitSurvey}
           >
-            Submit Review
+            Submit Survey
           </Button>
         </div>
       </div>

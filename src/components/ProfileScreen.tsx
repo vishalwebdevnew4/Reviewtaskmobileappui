@@ -1,5 +1,8 @@
+import React from 'react';
 import { Navigation } from './Navigation';
 import { Button } from './Button';
+import { useAuth } from '../contexts/AuthContext';
+import { surveyQueries, walletQueries, kycQueries } from '../db/queries';
 import { 
   User, 
   Mail, 
@@ -19,30 +22,124 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
+  const { user, logout } = useAuth();
+  const [stats, setStats] = React.useState({
+    reviews: 0,
+    earned: 0,
+    rating: 0
+  });
+  const [kycStatus, setKycStatus] = React.useState(null);
+  const [memberSince, setMemberSince] = React.useState('');
+
+  React.useEffect(() => {
+    if (user?.id) {
+      // Get user stats
+      const surveys = surveyQueries.getUserSurveys(user.id);
+      const balance = walletQueries.getBalance(user.id);
+      const kycInfo = kycQueries.getKYCInfo(user.id);
+
+      // Calculate stats
+      const surveysCount = surveys.length;
+      const totalEarned = surveys.reduce((sum, survey) => {
+        // Get task reward (simplified - in real app, join with tasks table)
+        return sum + 200; // Average reward
+      }, 0);
+      
+      // Calculate average rating
+      const ratings = surveys.filter(s => s.rating).map(s => s.rating as number);
+      const avgRating = ratings.length > 0 
+        ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)
+        : '0.0';
+
+      setStats({
+        reviews: surveysCount,
+        earned: balance,
+        rating: parseFloat(avgRating)
+      });
+
+      // Get KYC status
+      if (kycInfo) {
+        setKycStatus(kycInfo.status || 'pending');
+      }
+
+      // Format member since date
+      if (user.created_at) {
+        const date = new Date(user.created_at as string);
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear();
+        setMemberSince(`${month} ${year}`);
+      } else {
+        setMemberSince('Recently');
+      }
+    }
+  }, [user]);
+
+  const handleLogout = () => {
+    logout();
+    onNavigate('login');
+  };
+
+  const handleKYCVerification = () => {
+    if (kycStatus === 'approved') {
+      onNavigate('kycStatusApproved');
+    } else if (kycStatus === 'rejected') {
+      onNavigate('kycStatusRejected');
+    } else if (kycStatus === 'pending') {
+      onNavigate('kycStatus');
+    } else {
+      onNavigate('kycBasicInfo');
+    }
+  };
+
   const menuSections = [
     {
       title: 'Account',
       items: [
-        { icon: <User className="w-5 h-5" />, label: 'Edit Profile', action: () => {} },
-        { icon: <Shield className="w-5 h-5" />, label: 'KYC Verification', badge: 'Pending', action: () => {} },
+        { icon: <User className="w-5 h-5" />, label: 'Edit Profile', action: () => onNavigate('editProfile') },
+        { 
+          icon: <Shield className="w-5 h-5" />, 
+          label: 'KYC Verification', 
+          badge: kycStatus ? (kycStatus.charAt(0).toUpperCase() + kycStatus.slice(1)) : 'Not Started',
+          action: handleKYCVerification
+        },
         { icon: <Briefcase className="w-5 h-5" />, label: 'Switch to Company', action: () => onNavigate('companyDashboard') },
       ]
     },
     {
       title: 'Settings',
       items: [
-        { icon: <Bell className="w-5 h-5" />, label: 'Notifications', action: () => {} },
-        { icon: <Settings className="w-5 h-5" />, label: 'Preferences', action: () => {} },
+        { icon: <Bell className="w-5 h-5" />, label: 'Notifications', action: () => onNavigate('notifications') },
+        { icon: <Settings className="w-5 h-5" />, label: 'Settings', action: () => onNavigate('settings') },
       ]
     },
     {
       title: 'Support',
       items: [
-        { icon: <HelpCircle className="w-5 h-5" />, label: 'Help & Support', action: () => {} },
-        { icon: <FileText className="w-5 h-5" />, label: 'Terms & Privacy', action: () => {} },
+        { icon: <HelpCircle className="w-5 h-5" />, label: 'Help & Support', action: () => onNavigate('helpSupport') },
+        { icon: <FileText className="w-5 h-5" />, label: 'Terms & Privacy', action: () => onNavigate('terms') },
       ]
     }
   ];
+
+  // Format phone number
+  const formatPhone = (phone?: string) => {
+    if (!phone) return 'Not provided';
+    if (phone.length === 10) {
+      return `+91 ${phone.substring(0, 5)} ${phone.substring(5)}`;
+    }
+    return phone.startsWith('+91') ? phone : `+91 ${phone}`;
+  };
+
+  // Get initials for avatar
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   return (
     <div className="h-full bg-[#F6F6F9] pb-20 overflow-y-auto">
@@ -53,24 +150,43 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
         {/* User Info Card */}
         <div className="bg-gradient-to-br from-[#6B4BFF] to-[#8B6BFF] rounded-[24px] p-6 text-white">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
-              <User className="w-10 h-10" />
-            </div>
+            {user?.avatar_url ? (
+              <img 
+                src={user.avatar_url} 
+                alt={user.name || 'User'} 
+                className="w-20 h-20 rounded-full object-cover border-2 border-white/30"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30">
+                <span className="text-2xl font-bold">{getInitials(user?.name)}</span>
+              </div>
+            )}
             <div className="flex-1">
-              <h2 className="text-2xl mb-1">Vishal Kumar</h2>
-              <p className="text-sm opacity-90">Member since Nov 2024</p>
+              <h2 className="text-2xl mb-1">{user?.name || 'User'}</h2>
+              <p className="text-sm opacity-90">
+                Member since {memberSince || 'Recently'}
+              </p>
             </div>
           </div>
           
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Mail className="w-4 h-4 opacity-70" />
-              <span>vishal.kumar@email.com</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Smartphone className="w-4 h-4 opacity-70" />
-              <span>+91 98765 43210</span>
-            </div>
+            {user?.email && (
+              <div className="flex items-center gap-2 text-sm">
+                <Mail className="w-4 h-4 opacity-70" />
+                <span>{user.email}</span>
+              </div>
+            )}
+            {user?.phone && (
+              <div className="flex items-center gap-2 text-sm">
+                <Smartphone className="w-4 h-4 opacity-70" />
+                <span>{formatPhone(user.phone)}</span>
+              </div>
+            )}
+            {!user?.email && !user?.phone && (
+              <div className="text-sm opacity-70">
+                Complete your profile to add contact information
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -79,15 +195,15 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
       <div className="px-6 pb-6">
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md">
-            <h3 className="text-[#111111] mb-1">45</h3>
-            <p className="text-[#666666] text-xs">Reviews</p>
+            <h3 className="text-[#111111] mb-1">{stats.reviews}</h3>
+            <p className="text-[#666666] text-xs">Surveys</p>
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md">
-            <h3 className="text-[#111111] mb-1">₹12.4K</h3>
+            <h3 className="text-[#111111] mb-1">₹{stats.earned.toLocaleString()}</h3>
             <p className="text-[#666666] text-xs">Earned</p>
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md">
-            <h3 className="text-[#111111] mb-1">4.8★</h3>
+            <h3 className="text-[#111111] mb-1">{stats.rating.toFixed(1)}★</h3>
             <p className="text-[#666666] text-xs">Rating</p>
           </div>
         </div>
@@ -112,7 +228,15 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
                 </div>
                 <span className="flex-1 text-left text-[#111111]">{item.label}</span>
                 {item.badge && (
-                  <span className="bg-[#FF9500]/10 text-[#FF9500] px-3 py-1 rounded-full text-xs">
+                  <span className={`px-3 py-1 rounded-full text-xs ${
+                    item.badge === 'Approved' 
+                      ? 'bg-green-100 text-green-600'
+                      : item.badge === 'Pending'
+                      ? 'bg-[#FF9500]/10 text-[#FF9500]'
+                      : item.badge === 'Rejected'
+                      ? 'bg-red-100 text-red-600'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
                     {item.badge}
                   </span>
                 )}
@@ -124,25 +248,27 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
       ))}
 
       {/* KYC Verification Banner */}
-      <div className="px-6 pb-6">
-        <div className="bg-[#FFB93F]/10 rounded-[20px] p-6 border-2 border-[#FFB93F]/20">
-          <div className="flex items-center gap-3 mb-3">
-            <Shield className="w-6 h-6 text-[#FFB93F]" />
-            <h3 className="text-[#FFB93F]">Complete KYC Verification</h3>
+      {!kycStatus || kycStatus === 'pending' || kycStatus === 'rejected' ? (
+        <div className="px-6 pb-6">
+          <div className="bg-[#FFB93F]/10 rounded-[20px] p-6 border-2 border-[#FFB93F]/20">
+            <div className="flex items-center gap-3 mb-3">
+              <Shield className="w-6 h-6 text-[#FFB93F]" />
+              <h3 className="text-[#FFB93F]">Complete KYC Verification</h3>
+            </div>
+            <p className="text-[#666666] text-sm mb-4">
+              Verify your identity to unlock higher withdrawal limits and premium tasks.
+            </p>
+            <Button size="sm" variant="secondary" onClick={handleKYCVerification}>
+              {kycStatus === 'rejected' ? 'Re-verify' : 'Verify Now'}
+            </Button>
           </div>
-          <p className="text-[#666666] text-sm mb-4">
-            Verify your identity to unlock higher withdrawal limits and premium tasks.
-          </p>
-          <Button size="sm" variant="secondary">
-            Verify Now
-          </Button>
         </div>
-      </div>
+      ) : null}
 
       {/* Logout Button */}
       <div className="px-6 pb-6">
         <button 
-          onClick={() => onNavigate('login')}
+          onClick={handleLogout}
           className="w-full flex items-center justify-center gap-3 bg-white rounded-[20px] px-6 py-4 text-[#EF4444] shadow-md hover:bg-red-50 transition-all"
         >
           <LogOut className="w-5 h-5" />

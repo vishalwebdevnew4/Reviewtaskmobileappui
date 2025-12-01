@@ -1,13 +1,13 @@
 import React from 'react';
 
 interface ButtonProps {
-  children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  children?: any;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   onClick?: () => void;
   disabled?: boolean;
-  icon?: React.ReactNode;
+  icon?: any;
 }
 
 export function Button({ 

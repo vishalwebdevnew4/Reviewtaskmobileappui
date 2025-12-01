@@ -1,6 +1,8 @@
+import React, { useState } from 'react';
 import { ArrowLeft, Zap, Users, Shield, Clock } from 'lucide-react';
 import { Button } from './Button';
-import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { kycQueries } from '../db/queries';
 
 interface KYCVerificationMethodScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -8,11 +10,33 @@ interface KYCVerificationMethodScreenProps {
 }
 
 export function KYCVerificationMethodScreen({ onNavigate, onBack }: KYCVerificationMethodScreenProps) {
+  const { user } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState<'auto' | 'manual'>('auto');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = () => {
-    // Submit KYC for verification
-    onNavigate('kycStatus', { method: selectedMethod, status: 'pending' });
+  const handleSubmit = async () => {
+    if (!user?.id) {
+      setError('User not found. Please login again.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Save verification method and submit KYC
+      kycQueries.saveKYCInfo(user.id, {
+        verification_method: selectedMethod,
+        status: 'pending'
+      });
+
+      // Navigate to pending status screen
+      onNavigate('kycStatus', { method: selectedMethod });
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit verification');
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,6 +60,13 @@ export function KYCVerificationMethodScreen({ onNavigate, onBack }: KYCVerificat
 
       {/* Content */}
       <div className="flex-1 px-6 py-6 overflow-y-auto">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-[16px]">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="space-y-4">
           {/* Automated Verification */}
           <button
@@ -203,8 +234,9 @@ export function KYCVerificationMethodScreen({ onNavigate, onBack }: KYCVerificat
         <Button
           fullWidth
           onClick={handleSubmit}
+          disabled={loading}
         >
-          Submit for Verification
+          {loading ? 'Submitting...' : 'Submit for Verification'}
         </Button>
       </div>
     </div>

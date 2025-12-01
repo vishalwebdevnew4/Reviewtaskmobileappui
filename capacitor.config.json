@@ -1,0 +1,8 @@
+{
+  "appId": "com.reviewtask.app",
+  "appName": "ReviewTask",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

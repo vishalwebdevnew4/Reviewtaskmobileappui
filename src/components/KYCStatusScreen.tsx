@@ -1,5 +1,8 @@
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Clock, CheckCircle2, XCircle, AlertCircle, Home } from 'lucide-react';
 import { Button } from './Button';
+import { useAuth } from '../contexts/AuthContext';
+import { kycQueries } from '../db/queries';
 
 interface KYCStatusScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -7,8 +10,39 @@ interface KYCStatusScreenProps {
   status?: 'pending' | 'approved' | 'rejected';
 }
 
-export function KYCStatusScreen({ onNavigate, onBack, status = 'pending' }: KYCStatusScreenProps) {
+export function KYCStatusScreen({ onNavigate, onBack, status: propStatus }: KYCStatusScreenProps) {
+  const { user } = useAuth();
+  const [status, setStatus] = useState(propStatus || 'pending');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      // Fetch real KYC status from database
+      const kycInfo = kycQueries.getKYCInfo(user.id);
+      if (kycInfo?.status) {
+        setStatus(kycInfo.status as 'basic_info_complete' | 'pending' | 'approved' | 'rejected');
+      }
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
   const statusConfig = {
+    basic_info_complete: {
+      icon: <CheckCircle2 className="w-16 h-16" />,
+      bgColor: 'bg-[#6B4BFF]/10',
+      iconColor: 'text-[#6B4BFF]',
+      title: 'Basic Info Complete',
+      message: 'Your basic information has been saved. You can complete document verification later when you need to withdraw funds or access premium features.',
+      timeline: [
+        { label: 'Basic Information', status: 'completed', time: 'Just now' },
+        { label: 'Document Verification', status: 'pending', time: 'Optional' },
+        { label: 'Full Verification', status: 'pending', time: 'Pending' }
+      ],
+      action: 'Go to Home',
+      actionVariant: 'secondary' as const
+    },
     pending: {
       icon: <Clock className="w-16 h-16" />,
       bgColor: 'bg-[#FFB93F]/10',
@@ -54,6 +88,17 @@ export function KYCStatusScreen({ onNavigate, onBack, status = 'pending' }: KYCS
   };
 
   const config = statusConfig[status];
+
+  if (loading) {
+    return (
+      <div className="h-full bg-[#F6F6F9] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#6B4BFF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#666666]">Loading status...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-[#F6F6F9] flex flex-col">
@@ -173,6 +218,28 @@ export function KYCStatusScreen({ onNavigate, onBack, status = 'pending' }: KYCS
                 </div>
                 <p className="text-sm">Higher earning potential</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Basic Info Complete Info */}
+        {status === 'basic_info_complete' && (
+          <div className="bg-[#EEF2FF] rounded-[20px] p-6">
+            <h3 className="text-[#111111] mb-3">📋 What's Next?</h3>
+            <div className="space-y-2 text-sm text-[#666666]">
+              <p>• You can browse and complete tasks right away</p>
+              <p>• Document verification is optional but recommended</p>
+              <p>• Complete document verification when you want to withdraw funds</p>
+              <p>• You can continue KYC verification anytime from your profile</p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-[#6B4BFF]/20">
+              <Button
+                fullWidth
+                onClick={() => onNavigate('kycDocument')}
+                variant="primary"
+              >
+                Complete Document Verification
+              </Button>
             </div>
           </div>
         )}

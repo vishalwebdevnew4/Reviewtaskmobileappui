@@ -1,6 +1,8 @@
-import { ArrowLeft, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Calendar, User, Mail, Smartphone, MapPin } from 'lucide-react';
 import { Button } from './Button';
-import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { kycQueries } from '../db/queries';
 
 interface KYCBasicInfoScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -8,19 +10,130 @@ interface KYCBasicInfoScreenProps {
 }
 
 export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenProps) {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
   const [formData, setFormData] = useState({
     fullName: '',
     dob: '',
     phone: '',
-    email: ''
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: ''
   });
 
-  const handleSubmit = () => {
-    // Validate and proceed to next step
-    onNavigate('kycDocument', formData);
+  useEffect(() => {
+    if (user) {
+      // Pre-fill with user data
+      const existingKYC = user.id ? kycQueries.getKYCInfo(user.id) : null;
+      
+      setFormData({
+        fullName: existingKYC?.full_name || user.name || '',
+        dob: existingKYC?.date_of_birth || '',
+        phone: (user.phone || '').replace(/\D/g, '').substring(0, 10),
+        email: user.email || '',
+        address: existingKYC?.address || '',
+        city: existingKYC?.city || '',
+        state: existingKYC?.state || '',
+        pincode: existingKYC?.pincode || ''
+      });
+    }
+  }, [user]);
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setError('');
   };
 
-  const isFormValid = formData.fullName && formData.dob && formData.phone && formData.email;
+  const handlePhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').substring(0, 10);
+    handleChange('phone', digits);
+  };
+
+  const handlePincodeChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').substring(0, 6);
+    handleChange('pincode', digits);
+  };
+
+  const handleSubmit = () => {
+    if (!user?.id) {
+      setError('User not found. Please login again.');
+      return;
+    }
+
+    // Validation
+    if (!formData.fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+
+    if (!formData.dob) {
+      setError('Date of birth is required');
+      return;
+    }
+
+    if (!formData.phone || formData.phone.length !== 10) {
+      setError('Valid 10-digit phone number is required');
+      return;
+    }
+
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Valid email address is required');
+      return;
+    }
+
+    if (!formData.address.trim()) {
+      setError('Address is required');
+      return;
+    }
+
+    if (!formData.city.trim()) {
+      setError('City is required');
+      return;
+    }
+
+    if (!formData.state.trim()) {
+      setError('State is required');
+      return;
+    }
+
+    if (!formData.pincode || formData.pincode.length !== 6) {
+      setError('Valid 6-digit pincode is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Save basic info to database
+      kycQueries.saveKYCInfo(user.id, {
+        full_name: formData.fullName.trim(),
+        date_of_birth: formData.dob,
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode,
+        status: 'pending'
+      });
+
+      // Navigate to document screen (optional step)
+      onNavigate('kycDocument', { ...formData });
+    } catch (err: any) {
+      setError(err.message || 'Failed to save information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isFormValid = formData.fullName && formData.dob && formData.phone && formData.email && 
+                      formData.address && formData.city && formData.state && formData.pincode;
 
   return (
     <div className="h-full bg-[#F6F6F9] flex flex-col">
@@ -43,6 +156,13 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
 
       {/* Form Content */}
       <div className="flex-1 px-6 py-6 overflow-y-auto">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-[16px]">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="bg-white rounded-[20px] p-6 shadow-md">
           <h2 className="text-[#111111] mb-4">Basic Information</h2>
           
@@ -52,13 +172,16 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
               <label className="block text-sm text-[#666666] mb-2">
                 Full Name <span className="text-[#EF4444]">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                placeholder="Enter your full name"
-                className="w-full px-4 py-3 bg-[#F6F6F9] rounded-[12px] text-[#111111] placeholder:text-[#999999] border-none outline-none focus:ring-2 focus:ring-[#6B4BFF]/20"
-              />
+              <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[12px] px-4 py-3">
+                <User className="w-5 h-5 text-[#666666]" />
+                <input
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => handleChange('fullName', e.target.value)}
+                  placeholder="Enter your full name"
+                  className="flex-1 bg-transparent outline-none text-[#111111] placeholder:text-[#999999]"
+                />
+              </div>
             </div>
 
             {/* Date of Birth */}
@@ -67,13 +190,16 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
                 Date of Birth <span className="text-[#EF4444]">*</span>
               </label>
               <div className="relative">
-                <input
-                  type="date"
-                  value={formData.dob}
-                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#F6F6F9] rounded-[12px] text-[#111111] border-none outline-none focus:ring-2 focus:ring-[#6B4BFF]/20"
-                />
-                <Calendar className="w-5 h-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[12px] px-4 py-3">
+                  <Calendar className="w-5 h-5 text-[#666666]" />
+                  <input
+                    type="date"
+                    value={formData.dob}
+                    onChange={(e) => handleChange('dob', e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="flex-1 bg-transparent outline-none text-[#111111]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -82,13 +208,18 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
               <label className="block text-sm text-[#666666] mb-2">
                 Phone Number <span className="text-[#EF4444]">*</span>
               </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91 98765 43210"
-                className="w-full px-4 py-3 bg-[#F6F6F9] rounded-[12px] text-[#111111] placeholder:text-[#999999] border-none outline-none focus:ring-2 focus:ring-[#6B4BFF]/20"
-              />
+              <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[12px] px-4 py-3">
+                <Smartphone className="w-5 h-5 text-[#666666]" />
+                <span className="text-[#666666]">+91</span>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  placeholder="9876543210"
+                  maxLength={10}
+                  className="flex-1 bg-transparent outline-none text-[#111111] placeholder:text-[#999999]"
+                />
+              </div>
             </div>
 
             {/* Email Address */}
@@ -96,11 +227,74 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
               <label className="block text-sm text-[#666666] mb-2">
                 Email Address <span className="text-[#EF4444]">*</span>
               </label>
+              <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[12px] px-4 py-3">
+                <Mail className="w-5 h-5 text-[#666666]" />
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="flex-1 bg-transparent outline-none text-[#111111] placeholder:text-[#999999]"
+                />
+              </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-sm text-[#666666] mb-2">
+                Address <span className="text-[#EF4444]">*</span>
+              </label>
+              <div className="flex items-start gap-3 bg-[#F6F6F9] rounded-[12px] px-4 py-3">
+                <MapPin className="w-5 h-5 text-[#666666] mt-1" />
+                <textarea
+                  value={formData.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  placeholder="Enter your complete address"
+                  rows={2}
+                  className="flex-1 bg-transparent outline-none text-[#111111] placeholder:text-[#999999] resize-none"
+                />
+              </div>
+            </div>
+
+            {/* City, State, Pincode */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-[#666666] mb-2">
+                  City <span className="text-[#EF4444]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => handleChange('city', e.target.value)}
+                  placeholder="City"
+                  className="w-full px-4 py-3 bg-[#F6F6F9] rounded-[12px] text-[#111111] placeholder:text-[#999999] border-none outline-none focus:ring-2 focus:ring-[#6B4BFF]/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-[#666666] mb-2">
+                  State <span className="text-[#EF4444]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => handleChange('state', e.target.value)}
+                  placeholder="State"
+                  className="w-full px-4 py-3 bg-[#F6F6F9] rounded-[12px] text-[#111111] placeholder:text-[#999999] border-none outline-none focus:ring-2 focus:ring-[#6B4BFF]/20"
+                />
+              </div>
+            </div>
+
+            {/* Pincode */}
+            <div>
+              <label className="block text-sm text-[#666666] mb-2">
+                Pincode <span className="text-[#EF4444]">*</span>
+              </label>
               <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="your.email@example.com"
+                type="text"
+                value={formData.pincode}
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                placeholder="123456"
+                maxLength={6}
                 className="w-full px-4 py-3 bg-[#F6F6F9] rounded-[12px] text-[#111111] placeholder:text-[#999999] border-none outline-none focus:ring-2 focus:ring-[#6B4BFF]/20"
               />
             </div>
@@ -115,14 +309,59 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
         </div>
       </div>
 
-      {/* Bottom Button */}
-      <div className="bg-white px-6 py-4 shadow-lg">
+      {/* Bottom Buttons */}
+      <div className="bg-white px-6 py-4 shadow-lg space-y-3">
         <Button
           fullWidth
           onClick={handleSubmit}
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
         >
-          Continue
+          {loading ? 'Saving...' : 'Continue'}
+        </Button>
+        <Button
+          fullWidth
+          onClick={() => {
+            if (!user?.id) {
+              setError('User not found. Please login again.');
+              return;
+            }
+
+            // Validate required fields
+            if (!formData.fullName.trim() || !formData.dob || !formData.phone || formData.phone.length !== 10 || 
+                !formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ||
+                !formData.address.trim() || !formData.city.trim() || !formData.state.trim() || 
+                !formData.pincode || formData.pincode.length !== 6) {
+              setError('Please fill all required fields to skip document verification');
+              return;
+            }
+
+            setLoading(true);
+            setError('');
+
+            try {
+              // Save basic info to database
+              kycQueries.saveKYCInfo(user.id, {
+                full_name: formData.fullName.trim(),
+                date_of_birth: formData.dob,
+                address: formData.address.trim(),
+                city: formData.city.trim(),
+                state: formData.state.trim(),
+                pincode: formData.pincode,
+                status: 'pending'
+              });
+
+              // Navigate directly to status screen (skip document upload)
+              onNavigate('kycStatus', { skipDocument: true });
+            } catch (err: any) {
+              setError(err.message || 'Failed to save information');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          variant="secondary"
+          disabled={!isFormValid || loading}
+        >
+          Skip Document & Continue
         </Button>
       </div>
     </div>

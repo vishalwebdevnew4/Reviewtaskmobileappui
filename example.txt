@@ -1,0 +1,2 @@
+VITE_GOOGLE_CLIENT_ID=401788002919-h667labjnm38m9jff9rja95rkm4d0kdq.apps.googleusercontent.com
+DATABASE_URL=postgresql://postgres:jbyD%24%40es289%40Ex2o@localhost:5432/salesreviewer
