@@ -2,7 +2,7 @@
 // Replace these values with your Firebase project credentials
 import { initializeApp } from 'firebase/app';
 import { getAuth, RecaptchaVerifier } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Firebase configuration from environment variables
@@ -20,7 +20,26 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
+
+// Initialize Firestore with cache settings (new API)
 export const db = getFirestore(app);
+
+// Enable offline persistence using new API
+// Note: This is async and may fail in some browsers or if multiple tabs are open
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open, persistence can only be enabled in one tab at a time
+      console.warn('Firestore persistence: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      // Browser doesn't support persistence
+      console.warn('Firestore persistence: Not supported in this browser');
+    } else {
+      console.warn('Firestore persistence error:', err);
+    }
+  });
+}
+
 export const storage = getStorage(app);
 
 // Initialize reCAPTCHA verifier for phone authentication

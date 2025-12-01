@@ -2,7 +2,9 @@ import React from 'react';
 import { Navigation } from './Navigation';
 import { Button } from './Button';
 import { useAuth } from '../contexts/AuthContext';
-import { surveyQueries, walletQueries, kycQueries } from '../db/queries';
+import { getUserEarnings } from '../services/userService';
+import { getKYCStatus } from '../services/kycService';
+import { getUserReviews } from '../services/reviewService';
 import { 
   User, 
   Mail, 
@@ -32,51 +34,59 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   const [memberSince, setMemberSince] = React.useState('');
 
   React.useEffect(() => {
-    if (user?.id) {
-      // Get user stats
-      const surveys = surveyQueries.getUserSurveys(user.id);
-      const balance = walletQueries.getBalance(user.id);
-      const kycInfo = kycQueries.getKYCInfo(user.id);
+    if (user?.uid) {
+      // Load user stats
+      const loadStats = async () => {
+        try {
+          // Get earnings
+          const earnings = await getUserEarnings(user.uid);
+          
+          // Get reviews
+          const reviews = await getUserReviews(user.uid);
+          
+          // Calculate average rating
+          const ratings = reviews.filter(r => r.rating).map(r => r.rating);
+          const avgRating = ratings.length > 0 
+            ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)
+            : '0.0';
 
-      // Calculate stats
-      const surveysCount = surveys.length;
-      const totalEarned = surveys.reduce((sum, survey) => {
-        // Get task reward (simplified - in real app, join with tasks table)
-        return sum + 200; // Average reward
-      }, 0);
-      
-      // Calculate average rating
-      const ratings = surveys.filter(s => s.rating).map(s => s.rating as number);
-      const avgRating = ratings.length > 0 
-        ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)
-        : '0.0';
+          setStats({
+            reviews: reviews.length,
+            earned: earnings.availableBalance,
+            rating: parseFloat(avgRating)
+          });
 
-      setStats({
-        reviews: surveysCount,
-        earned: balance,
-        rating: parseFloat(avgRating)
-      });
+          // Get KYC status
+          const kycStatusValue = await getKYCStatus(user.uid);
+          setKycStatus(kycStatusValue);
 
-      // Get KYC status
-      if (kycInfo) {
-        setKycStatus(kycInfo.status || 'pending');
-      }
+          // Format member since date
+          if (user.metadata.creationTime) {
+            const date = new Date(user.metadata.creationTime);
+            const month = date.toLocaleString('default', { month: 'short' });
+            const year = date.getFullYear();
+            setMemberSince(`${month} ${year}`);
+          } else {
+            setMemberSince('Recently');
+          }
+        } catch (error) {
+          console.error('Failed to load user stats:', error);
+        }
+      };
 
-      // Format member since date
-      if (user.created_at) {
-        const date = new Date(user.created_at as string);
-        const month = date.toLocaleString('default', { month: 'short' });
-        const year = date.getFullYear();
-        setMemberSince(`${month} ${year}`);
-      } else {
-        setMemberSince('Recently');
-      }
+      loadStats();
     }
   }, [user]);
 
-  const handleLogout = () => {
-    logout();
-    onNavigate('login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onNavigate('login');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      // Still navigate to login even if logout fails
+      onNavigate('login');
+    }
   };
 
   const handleKYCVerification = () => {
@@ -124,10 +134,12 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   // Format phone number
   const formatPhone = (phone?: string) => {
     if (!phone) return 'Not provided';
-    if (phone.length === 10) {
-      return `+91 ${phone.substring(0, 5)} ${phone.substring(5)}`;
+    // Remove country code if present
+    let phoneNumber = phone.replace(/^\+91/, '').trim();
+    if (phoneNumber.length === 10) {
+      return `+91 ${phoneNumber.substring(0, 5)} ${phoneNumber.substring(5)}`;
     }
-    return phone.startsWith('+91') ? phone : `+91 ${phone}`;
+    return phone.startsWith('+') ? phone : `+91 ${phoneNumber}`;
   };
 
   // Get initials for avatar
@@ -142,27 +154,29 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   };
 
   return (
-    <div className="h-full bg-[#F6F6F9] pb-20 overflow-y-auto">
-      {/* Header */}
-      <div className="bg-white px-6 pt-8 pb-6">
+    <div className="h-full bg-[#F6F6F9] relative flex flex-col">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <div className="bg-white px-6 pt-8 pb-6">
         <h1 className="text-[#111111] mb-6">Profile</h1>
 
         {/* User Info Card */}
         <div className="bg-gradient-to-br from-[#6B4BFF] to-[#8B6BFF] rounded-[24px] p-6 text-white">
           <div className="flex items-center gap-4 mb-4">
-            {user?.avatar_url ? (
+            {user?.photoURL ? (
               <img 
-                src={user.avatar_url} 
-                alt={user.name || 'User'} 
+                src={user.photoURL} 
+                alt={user.displayName || 'User'} 
                 className="w-20 h-20 rounded-full object-cover border-2 border-white/30"
               />
             ) : (
               <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30">
-                <span className="text-2xl font-bold">{getInitials(user?.name)}</span>
+                <span className="text-2xl font-bold">{getInitials(user?.displayName || undefined)}</span>
               </div>
             )}
             <div className="flex-1">
-              <h2 className="text-2xl mb-1">{user?.name || 'User'}</h2>
+              <h2 className="text-2xl mb-1">{user?.displayName || 'User'}</h2>
               <p className="text-sm opacity-90">
                 Member since {memberSince || 'Recently'}
               </p>
@@ -176,13 +190,13 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
                 <span>{user.email}</span>
               </div>
             )}
-            {user?.phone && (
+            {user?.phoneNumber && (
               <div className="flex items-center gap-2 text-sm">
                 <Smartphone className="w-4 h-4 opacity-70" />
-                <span>{formatPhone(user.phone)}</span>
+                <span>{formatPhone(user.phoneNumber)}</span>
               </div>
             )}
-            {!user?.email && !user?.phone && (
+            {!user?.email && !user?.phoneNumber && (
               <div className="text-sm opacity-70">
                 Complete your profile to add contact information
               </div>
@@ -280,8 +294,9 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
       <div className="text-center pb-6">
         <p className="text-[#666666] text-sm">ReviewTask v1.0.0</p>
       </div>
+      </div>
 
-      {/* Navigation */}
+      {/* Navigation - Sticky at bottom */}
       <Navigation active="profile" onNavigate={onNavigate} />
     </div>
   );

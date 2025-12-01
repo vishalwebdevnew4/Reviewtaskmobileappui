@@ -1,0 +1,39 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Task images - authenticated users can upload
+    match /tasks/{taskId}/{allPaths=**} {
+      allow read: if true; // Anyone can read task images
+      allow write: if isAuthenticated(); // Authenticated users can upload task images
+    }
+    
+    // Review images - users can upload their own
+    match /reviews/{userId}/{taskId}/{allPaths=**} {
+      allow read: if true; // Anyone can read review images
+      allow write: if isAuthenticated() && request.auth.uid == userId; // Users can upload their own review images
+    }
+    
+    // KYC documents - users can upload their own
+    match /kyc/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin()); // Users can read their own, admins can read all
+      allow write: if isAuthenticated() && request.auth.uid == userId; // Users can upload their own KYC documents
+    }
+    
+    // Default: deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

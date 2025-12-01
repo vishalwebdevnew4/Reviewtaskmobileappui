@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, Plus, Eye, CheckCircle2, XCircle, TrendingUp, Upload, IndianRupee, Edit, Trash2, Pause, Play, CheckCircle, X, Trash } from 'lucide-react';
-import { taskQueries, surveyQueries } from '../db/queries';
+import { getActiveTasks, createTask, updateTask, deleteTask, getTaskById, Task } from '../services/taskService';
+import { getReviewsByTaskId } from '../services/reviewService';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface CompanyDashboardProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -28,29 +31,40 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
     loadCampaigns();
   }, []);
 
-  const loadCampaigns = () => {
-    const allTasks = taskQueries.getAllTasks();
-    setCampaigns(allTasks.map(task => {
-      // Get all surveys for this task
-      const surveys = surveyQueries.getSurveysByTask(task.id);
-      const submissions = surveys.length;
-      const approved = surveys.filter(s => s.status === 'approved').length;
-      const budgetUsed = approved * task.reward;
-      const estimatedBudget = task.reward * 20; // Estimated total budget
-      const budgetRemaining = Math.max(0, estimatedBudget - budgetUsed);
+  const loadCampaigns = async () => {
+    try {
+      const allTasks = await getActiveTasks();
       
-      return {
-        id: task.id,
-        title: task.title,
-        category: task.category || 'General',
-        reward: task.reward,
-        submissions: submissions,
-        approved: approved,
-        budget: budgetRemaining,
-        budgetUsed: budgetUsed,
-        status: task.status
-      };
-    }));
+      // Get reviews for all tasks to calculate stats
+      const campaignsData = await Promise.all(
+        allTasks.map(async (task) => {
+          // Get reviews for this task
+          const reviews = await getReviewsByTaskId(task.id);
+          const submissions = reviews.length;
+          const approved = reviews.filter(r => r.status === 'approved').length;
+          const budgetUsed = approved * task.reward;
+          const estimatedBudget = task.reward * 20; // Estimated total budget
+          const budgetRemaining = Math.max(0, estimatedBudget - budgetUsed);
+          
+          return {
+            id: task.id,
+            title: task.title,
+            category: task.category || 'General',
+            reward: task.reward,
+            submissions: submissions,
+            approved: approved,
+            budget: budgetRemaining,
+            budgetUsed: budgetUsed,
+            status: task.status
+          };
+        })
+      );
+      
+      setCampaigns(campaignsData);
+    } catch (error: any) {
+      console.error('Error loading campaigns:', error);
+      toast.error('Failed to load campaigns');
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +84,7 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
     reader.readAsDataURL(file);
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!formData.title.trim()) {
       setError('Task title is required');
       return;
@@ -92,21 +106,30 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
     setError('');
 
     try {
-      // Create task in database
-      const surveyFieldsJson = surveyFields.length > 0 ? JSON.stringify(surveyFields) : null;
-      const task = taskQueries.createTask({
+      console.log('Creating task with data:', formData);
+      
+      // Create task using Firebase
+      const deadlineDate = formData.deadline 
+        ? new Date(formData.deadline)
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default: 7 days from now
+
+      console.log('Calling createTask...');
+      const taskId = await createTask({
         title: formData.title.trim(),
         brand: formData.brand.trim(),
-        image: formData.image || null,
+        image: formData.image || '',
         reward: parseFloat(formData.reward),
-        deadline: formData.deadline ? `Due in ${Math.ceil((new Date(formData.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days` : null,
-        category: formData.category.toLowerCase(),
-        description: formData.description.trim() || null,
-        survey_fields: surveyFieldsJson,
-        tag: 'New'
+        deadline: deadlineDate,
+        category: formData.category.toLowerCase() as Task['category'],
+        description: formData.description.trim() || '',
+        tag: 'New',
+        status: 'active'
       });
 
-      // Reset form
+      console.log('Task created with ID:', taskId);
+      toast.success('Task created successfully!');
+      
+      // Reset form first
       setFormData({
         title: '',
         brand: '',
@@ -119,9 +142,14 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
       setSurveyFields([]);
       setUploadedImage(null);
       setShowCreateTask(false);
-      loadCampaigns();
+      
+      // Then reload campaigns
+      await loadCampaigns();
     } catch (err: any) {
-      setError(err.message || 'Failed to create task');
+      console.error('Error creating task:', err);
+      const errorMessage = err.message || 'Failed to create task. Please check your connection and try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -529,8 +557,8 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
                     size="sm" 
                     variant="outline" 
                     fullWidth
-                    onClick={() => {
-                      const task = taskQueries.getTaskById(campaign.id);
+                    onClick={async () => {
+                      const task = await getTaskById(campaign.id);
                       if (task) {
                         onNavigate('taskDetails', { task });
                       }
@@ -560,10 +588,10 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => {
+                      onClick={async () => {
                         if (confirm('Pause this task campaign?')) {
-                          taskQueries.updateTaskStatus(campaign.id, 'paused');
-                          loadCampaigns();
+                          await updateTask(campaign.id, { status: 'expired' });
+                          await loadCampaigns();
                         }
                       }}
                       className="flex-1"
@@ -575,9 +603,9 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => {
-                        taskQueries.updateTaskStatus(campaign.id, 'active');
-                        loadCampaigns();
+                      onClick={async () => {
+                        await updateTask(campaign.id, { status: 'active' });
+                        await loadCampaigns();
                       }}
                       className="flex-1"
                     >
@@ -598,12 +626,13 @@ export function CompanyDashboard({ onNavigate }: CompanyDashboardProps) {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-                        taskQueries.deleteTask(campaign.id);
-                        loadCampaigns();
-                      }
-                    }}
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+                          await deleteTask(campaign.id);
+                          await loadCampaigns();
+                          toast.success('Task deleted successfully');
+                        }
+                      }}
                     className="flex-1 text-red-500 border-red-200 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4 mr-1" />

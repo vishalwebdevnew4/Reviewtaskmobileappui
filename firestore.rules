@@ -34,8 +34,11 @@ service cloud.firestore {
     match /tasks/{taskId} {
       // All authenticated users can read tasks
       allow read: if isAuthenticated();
-      // Only admins can create/update/delete tasks
-      allow write: if isAdmin();
+      // Allow authenticated users to create tasks (for testing)
+      // In production, change this back to: allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      // Only admins can update/delete tasks
+      allow update, delete: if isAdmin();
     }
     
     // Reviews collection

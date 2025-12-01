@@ -1,17 +1,10 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-import { Button } from './Button';
-import { ArrowLeft, Star, Upload, X, Camera } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { reviewQueries, userTaskQueries, walletQueries } from '../db/queries';
-=======
+
 import { useState, useRef } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, Star, Upload, X, Camera } from 'lucide-react';
 import { submitReview } from '../services/reviewService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface SubmitReviewScreenProps {
   task: any;
@@ -22,28 +15,7 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
   const { user } = useAuth();
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-<<<<<<< HEAD
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadedFiles(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleSubmit = () => {
-    if (!user?.id || !task?.id) {
-      setError('User or task not found');
-=======
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,59 +59,29 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
     if (!user) {
       toast.error('Please login to submit a review');
       onNavigate('login');
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       return;
     }
 
     if (rating === 0) {
-<<<<<<< HEAD
-      setError('Please provide a rating');
-=======
+
       toast.error('Please select a rating');
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       return;
     }
 
     if (reviewText.length < 50) {
-<<<<<<< HEAD
-      setError('Review must be at least 50 characters');
-=======
+
       toast.error('Review text must be at least 50 characters');
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       return;
     }
 
     if (uploadedFiles.length < 2) {
-<<<<<<< HEAD
-      setError('Please upload at least 2 photos');
-=======
+
       toast.error('At least 2 images are required');
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       return;
     }
 
     setLoading(true);
-<<<<<<< HEAD
-    setError('');
 
-    try {
-      // Save review to database
-      reviewQueries.createReview({
-        taskId: parseInt(task.id),
-        userId: user.id,
-        rating: rating,
-        reviewText: reviewText,
-        images: JSON.stringify(uploadedFiles)
-      });
-
-      // Update task status to submitted
-      userTaskQueries.updateTaskStatus(user.id, parseInt(task.id), 'submitted');
-
-      // Navigate to my tasks
-      onNavigate('myTasks');
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit review');
-=======
     try {
       await submitReview(user.uid, task.id, rating, reviewText, uploadedFiles);
       toast.success('Review submitted successfully! It will be reviewed by our team.');
@@ -147,7 +89,6 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit review');
     } finally {
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       setLoading(false);
     }
   };
@@ -235,16 +176,7 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
           <h3 className="text-[#111111] mb-4">Upload photos/videos</h3>
           
           {/* Upload Button */}
-<<<<<<< HEAD
-          <label className="block w-full bg-[#F6F6F9] rounded-[16px] p-8 border-2 border-dashed border-gray-300 hover:border-[#6B4BFF] transition-all mb-4 cursor-pointer">
-            <input
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-=======
+
           <input
             ref={fileInputRef}
             type="file"
@@ -257,7 +189,6 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
             onClick={() => fileInputRef.current?.click()}
             className="w-full bg-[#F6F6F9] rounded-[16px] p-8 border-2 border-dashed border-gray-300 hover:border-[#6B4BFF] transition-all mb-4"
           >
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             <div className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 bg-[#6B4BFF]/10 rounded-full flex items-center justify-center">
                 <Camera className="w-6 h-6 text-[#6B4BFF]" />
@@ -272,16 +203,7 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
             <div className="grid grid-cols-3 gap-3">
               {uploadedFiles.map((file, index) => (
                 <div key={index} className="relative">
-<<<<<<< HEAD
-                  {file.startsWith('data:image') ? (
-                    <img src={file} alt={`Upload ${index + 1}`} className="w-full h-24 object-cover rounded-[12px]" />
-                  ) : (
-                    <div className="w-full h-24 bg-gray-200 rounded-[12px]"></div>
-                  )}
-                  <button
-                    onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-[#EF4444] rounded-full flex items-center justify-center hover:bg-[#dc2626]"
-=======
+
                   {previewUrls[index] ? (
                     <img
                       src={previewUrls[index]}
@@ -294,7 +216,6 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
                   <button
                     onClick={() => handleRemoveFile(index)}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-[#EF4444] rounded-full flex items-center justify-center"
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
                   >
                     <X className="w-4 h-4 text-white" />
                   </button>
@@ -326,11 +247,8 @@ export function SubmitReviewScreen({ task, onNavigate }: SubmitReviewScreenProps
           <Button 
             fullWidth
             onClick={handleSubmit}
-<<<<<<< HEAD
-            disabled={rating === 0 || reviewText.length < 50 || uploadedFiles.length < 2 || loading}
-=======
+
             disabled={loading || rating === 0 || reviewText.length < 50 || uploadedFiles.length < 2}
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
           >
             {loading ? 'Submitting...' : 'Submit Review'}
           </Button>

@@ -1,21 +1,15 @@
-<<<<<<< HEAD
-import React, { useEffect, useState } from 'react';
-=======
+
 import { useState, useEffect } from 'react';
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 import { Navigation } from './Navigation';
 import { Button } from './Button';
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
-<<<<<<< HEAD
-import { walletQueries, surveyQueries } from '../db/queries';
-=======
+
 import { getUserEarnings, getEarningsByCategory } from '../services/userService';
 import { getUserReviews } from '../services/reviewService';
 import { getUserWithdrawals } from '../services/withdrawalService';
 import { toast } from 'sonner';
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface WalletScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -23,10 +17,7 @@ interface WalletScreenProps {
 
 export function WalletScreen({ onNavigate }: WalletScreenProps) {
   const { user } = useAuth();
-<<<<<<< HEAD
-  const [balance, setBalance] = useState(0);
-  const [totalEarned, setTotalEarned] = useState(0);
-=======
+
   const [earnings, setEarnings] = useState({
     totalEarnings: 0,
     availableBalance: 0,
@@ -34,52 +25,11 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
     withdrawnAmount: 0,
   });
   const [earningsData, setEarningsData] = useState<Array<{ name: string; value: number; color: string }>>([]);
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (user?.id) {
-      loadWalletData();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
 
-  const loadWalletData = () => {
-    if (!user?.id) return;
-    
-    setLoading(true);
-    try {
-      const currentBalance = walletQueries.getBalance(user.id);
-      setBalance(currentBalance);
-      
-      // Calculate total earned from all credit transactions
-      const allTransactions = walletQueries.getTransactions(user.id, 1000);
-      const total = allTransactions
-        .filter(t => t.type === 'credit')
-        .reduce((sum, t) => sum + t.amount, 0);
-      setTotalEarned(total);
-      
-      // Get recent transactions
-      const recentTransactions = walletQueries.getTransactions(user.id, 20);
-      setTransactions(recentTransactions.map(t => ({
-        id: t.id,
-        type: t.type,
-        title: t.description || (t.type === 'credit' ? 'Survey Reward' : 'Withdrawal'),
-        amount: t.amount,
-        date: new Date(t.created_at).toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit'
-        }),
-        status: t.status || (t.type === 'credit' ? 'completed' : 'pending')
-      })));
-    } catch (error) {
-      console.error('Error loading wallet data:', error);
-=======
     if (user) {
       loadWalletData();
     }
@@ -135,20 +85,11 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
       setTransactions(allTransactions);
     } catch (error: any) {
       toast.error(error.message || 'Failed to load wallet data');
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
     } finally {
       setLoading(false);
     }
   };
-<<<<<<< HEAD
-  // Calculate earnings by category from surveys
-  const earningsData = [
-    { name: 'Tech', value: 0, color: '#6B4BFF' },
-    { name: 'Food', value: 0, color: '#FFB93F' },
-    { name: 'Health', value: 0, color: '#22C55E' },
-    { name: 'Fashion', value: 0, color: '#EF4444' },
-  ];
-=======
+
 
   const getColorForCategory = (category: string): string => {
     const colors: Record<string, string> = {
@@ -178,12 +119,13 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
     if (days < 7) return `${days} days ago`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   return (
-    <div className="h-full bg-[#F6F6F9] pb-20 overflow-y-auto">
-      {/* Header */}
-      <div className="bg-white px-6 pt-8 pb-6">
+    <div className="h-full bg-[#F6F6F9] relative flex flex-col">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <div className="bg-white px-6 pt-8 pb-6">
         <h1 className="text-[#111111] mb-6">Wallet</h1>
 
         {/* Total Earnings Card */}
@@ -191,31 +133,21 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm opacity-90 mb-1">Total Earnings</p>
-<<<<<<< HEAD
-              <h2 className="text-4xl">₹{totalEarned.toLocaleString()}</h2>
-=======
+
               <h2 className="text-4xl">
                 {loading ? '...' : `₹${earnings.totalEarnings.toLocaleString()}`}
               </h2>
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Wallet className="w-6 h-6" />
             </div>
           </div>
-<<<<<<< HEAD
-          {loading && (
-            <div className="flex items-center gap-2 text-sm opacity-75">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Loading...</span>
-            </div>
-=======
+
           {earnings.pendingEarnings > 0 && (
           <div className="flex items-center gap-2 text-sm">
             <TrendingUp className="w-4 h-4" />
               <span>₹{earnings.pendingEarnings} pending approval</span>
           </div>
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
           )}
         </div>
 
@@ -224,13 +156,10 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[#666666] text-sm mb-1">Available Balance</p>
-<<<<<<< HEAD
-              <h3 className="text-[#111111]">₹{balance.toLocaleString()}</h3>
-=======
+
               <h3 className="text-[#111111]">
                 {loading ? '...' : `₹${earnings.availableBalance.toLocaleString()}`}
               </h3>
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             </div>
             <Button
               size="sm"
@@ -295,30 +224,13 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
       <div className="px-6 pb-6">
         <h2 className="text-[#111111] mb-4">Transaction History</h2>
         {loading ? (
-<<<<<<< HEAD
-          <div className="text-center py-8">
-            <div className="w-12 h-12 border-4 border-[#6B4BFF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-[#666666]">Loading transactions...</p>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-[20px]">
-            <div className="w-20 h-20 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Wallet className="w-10 h-10 text-[#666666]" />
-            </div>
-            <h3 className="text-[#111111] mb-2">No transactions yet</h3>
-            <p className="text-[#666666]">Complete surveys to start earning</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {transactions.map((transaction) => (
-=======
+
           <div className="text-center py-8 text-[#666666]">Loading transactions...</div>
         ) : transactions.length === 0 ? (
           <div className="text-center py-8 text-[#666666]">No transactions yet</div>
         ) : (
         <div className="space-y-3">
           {transactions.map((transaction) => (
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             <div
               key={transaction.id}
               className="bg-white rounded-[20px] p-4 shadow-md"
@@ -365,15 +277,13 @@ export function WalletScreen({ onNavigate }: WalletScreenProps) {
               </div>
             </div>
           ))}
-<<<<<<< HEAD
-          </div>
-=======
+
         </div>
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
         )}
       </div>
+      </div>
 
-      {/* Navigation */}
+      {/* Navigation - Sticky at bottom */}
       <Navigation active="wallet" onNavigate={onNavigate} />
     </div>
   );

@@ -1,13 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Calendar, User, Mail, Smartphone, MapPin } from 'lucide-react';
 import { Button } from './Button';
-<<<<<<< HEAD
 import { useAuth } from '../contexts/AuthContext';
-import { kycQueries } from '../db/queries';
-=======
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface KYCBasicInfoScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -15,78 +9,26 @@ interface KYCBasicInfoScreenProps {
 }
 
 export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenProps) {
-<<<<<<< HEAD
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-=======
+
   const { user, userProfile } = useAuth();
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   const [formData, setFormData] = useState({
     fullName: userProfile?.displayName || '',
     dob: '',
-<<<<<<< HEAD
-    phone: '',
-    email: '',
+    phone: userProfile?.phoneNumber || user?.phoneNumber || '',
+    email: userProfile?.email || user?.email || '',
     address: '',
     city: '',
     state: '',
     pincode: ''
-=======
-    phone: userProfile?.phoneNumber || user?.phoneNumber || '',
-    email: userProfile?.email || user?.email || ''
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   });
   const [loading, setLoading] = useState(false);
-
-<<<<<<< HEAD
-  useEffect(() => {
-    if (user) {
-      // Pre-fill with user data
-      const existingKYC = user.id ? kycQueries.getKYCInfo(user.id) : null;
-      
-      setFormData({
-        fullName: existingKYC?.full_name || user.name || '',
-        dob: existingKYC?.date_of_birth || '',
-        phone: (user.phone || '').replace(/\D/g, '').substring(0, 10),
-        email: user.email || '',
-        address: existingKYC?.address || '',
-        city: existingKYC?.city || '',
-        state: existingKYC?.state || '',
-        pincode: existingKYC?.pincode || ''
-      });
-    }
-  }, [user]);
+  const [error, setError] = useState('');
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
-=======
-  const handleSubmit = () => {
-    // Validate form
-    if (!formData.fullName || !formData.dob || !formData.phone || !formData.email) {
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return;
-    }
-
-    // Validate phone (should be 10 digits)
-    if (formData.phone.replace(/\D/g, '').length !== 10) {
-      return;
-    }
-
-    // Proceed to next step
-    onNavigate('kycDocument', { basicInfo: formData });
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
   };
+
 
   const handlePhoneChange = (value: string) => {
     const digits = value.replace(/\D/g, '').substring(0, 10);
@@ -98,8 +40,8 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
     handleChange('pincode', digits);
   };
 
-  const handleSubmit = () => {
-    if (!user?.id) {
+  const handleSubmit = async () => {
+    if (!user?.uid) {
       setError('User not found. Please login again.');
       return;
     }
@@ -149,19 +91,21 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
     setError('');
 
     try {
-      // Save basic info to database
-      kycQueries.saveKYCInfo(user.id, {
-        full_name: formData.fullName.trim(),
-        date_of_birth: formData.dob,
+      // Save basic info to pass to document screen
+      // Documents will be uploaded in the next screen
+      const basicInfo = {
+        fullName: formData.fullName.trim(),
+        dob: formData.dob,
+        phone: formData.phone,
+        email: formData.email,
         address: formData.address.trim(),
         city: formData.city.trim(),
         state: formData.state.trim(),
-        pincode: formData.pincode,
-        status: 'pending'
-      });
+        pincode: formData.pincode
+      };
 
-      // Navigate to document screen (optional step)
-      onNavigate('kycDocument', { ...formData });
+      // Navigate to document screen with basic info
+      onNavigate('kycDocument', { basicInfo });
     } catch (err: any) {
       setError(err.message || 'Failed to save information');
     } finally {
@@ -358,7 +302,7 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
         <Button
           fullWidth
           onClick={() => {
-            if (!user?.id) {
+            if (!user?.uid) {
               setError('User not found. Please login again.');
               return;
             }
@@ -376,19 +320,18 @@ export function KYCBasicInfoScreen({ onNavigate, onBack }: KYCBasicInfoScreenPro
             setError('');
 
             try {
-              // Save basic info to database
-              kycQueries.saveKYCInfo(user.id, {
-                full_name: formData.fullName.trim(),
-                date_of_birth: formData.dob,
-                address: formData.address.trim(),
-                city: formData.city.trim(),
-                state: formData.state.trim(),
-                pincode: formData.pincode,
-                status: 'pending'
-              });
-
+              // For skip document flow, we'll just navigate
+              // The KYC will be submitted without documents
               // Navigate directly to status screen (skip document upload)
-              onNavigate('kycStatus', { skipDocument: true });
+              onNavigate('kycStatus', { 
+                skipDocument: true,
+                basicInfo: {
+                  fullName: formData.fullName.trim(),
+                  dob: formData.dob,
+                  phone: formData.phone,
+                  email: formData.email
+                }
+              });
             } catch (err: any) {
               setError(err.message || 'Failed to save information');
             } finally {

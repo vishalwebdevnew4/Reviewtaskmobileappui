@@ -137,11 +137,9 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
             <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
               <input
                 type="text"
-                value={accountDetails.upi}
-                onChange={(e) => setAccountDetails({ ...accountDetails, upi: e.target.value })}
-                placeholder="yourname@upi"
-                value={accountDetails.upiId}
+                value={accountDetails.upiId || ''}
                 onChange={(e) => setAccountDetails({ ...accountDetails, upiId: e.target.value })}
+                placeholder="yourname@upi"
                 className="flex-1 bg-transparent outline-none text-[#111111]"
               />
             </div>
@@ -155,11 +153,9 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
               <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
                 <input
                   type="text"
-                  value={accountDetails.accountNumber}
+                  value={accountDetails.accountNumber || ''}
                   onChange={(e) => setAccountDetails({ ...accountDetails, accountNumber: e.target.value })}
                   placeholder="Enter account number"
-                  value={accountDetails.accountNumber}
-                  onChange={(e) => setAccountDetails({ ...accountDetails, accountNumber: e.target.value })}
                   className="flex-1 bg-transparent outline-none text-[#111111]"
                 />
               </div>
@@ -169,11 +165,9 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
               <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
                 <input
                   type="text"
-                  value={accountDetails.ifsc}
-                  onChange={(e) => setAccountDetails({ ...accountDetails, ifsc: e.target.value.toUpperCase() })}
-                  placeholder="Enter IFSC code"
-                  value={accountDetails.ifscCode}
+                  value={accountDetails.ifscCode || ''}
                   onChange={(e) => setAccountDetails({ ...accountDetails, ifscCode: e.target.value.toUpperCase() })}
+                  placeholder="Enter IFSC code"
                   className="flex-1 bg-transparent outline-none text-[#111111]"
                 />
               </div>
@@ -188,11 +182,9 @@ export function WithdrawScreen({ onNavigate }: WithdrawScreenProps) {
               <span className="text-[#666666]">+91</span>
               <input
                 type="tel"
-                value={accountDetails.paytm}
-                onChange={(e) => setAccountDetails({ ...accountDetails, paytm: e.target.value.replace(/\D/g, '').substring(0, 10) })}
+                value={accountDetails.paytmNumber || accountDetails.paytm || ''}
+                onChange={(e) => setAccountDetails({ ...accountDetails, paytmNumber: e.target.value.replace(/\D/g, '').substring(0, 10) })}
                 placeholder="Enter mobile number"
-                value={accountDetails.paytmNumber}
-                onChange={(e) => setAccountDetails({ ...accountDetails, paytmNumber: e.target.value.replace(/\D/g, '') })}
                 className="flex-1 bg-transparent outline-none text-[#111111]"
                 maxLength={10}
               />

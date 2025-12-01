@@ -90,9 +90,11 @@ export function MyTasksScreen({ onNavigate }: MyTasksScreenProps) {
   ];
 
   return (
-    <div className="h-full bg-[#F6F6F9] pb-20 overflow-y-auto">
-      {/* Header */}
-      <div className="bg-white px-6 pt-8 pb-4">
+    <div className="h-full bg-[#F6F6F9] relative flex flex-col">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <div className="bg-white px-6 pt-8 pb-4">
         <h1 className="text-[#111111] mb-6">My Tasks</h1>
         
         {/* Tabs */}
@@ -172,8 +174,9 @@ export function MyTasksScreen({ onNavigate }: MyTasksScreenProps) {
           </div>
         )}
       </div>
+      </div>
 
-      {/* Navigation */}
+      {/* Navigation - Sticky at bottom */}
       <Navigation active="myTasks" onNavigate={onNavigate} />
     </div>
   );

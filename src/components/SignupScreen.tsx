@@ -1,46 +1,14 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-import { useGoogleLogin } from '@react-oauth/google';
-import { Button } from './Button';
-import { User, Mail, Lock } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-=======
 import { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { User, Smartphone, Mail } from 'lucide-react';
 import { sendOTP, signUpWithEmail, signInWithGoogle } from '../services/authService';
 import { toast } from 'sonner';
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
 interface SignupScreenProps {
   onNavigate: (screen: string, data?: any) => void;
 }
 
 export function SignupScreen({ onNavigate }: SignupScreenProps) {
-<<<<<<< HEAD
-  const { register, loginWithGoogle } = useAuth();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSignup = async () => {
-    // Validation
-    if (!name || !email || !password) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-=======
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -79,59 +47,10 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
   const handlePhoneSignup = async () => {
     if (!fullName || !phoneNumber || phoneNumber.length !== 10) {
       toast.error('Please fill all fields correctly');
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
       return;
     }
 
     setLoading(true);
-<<<<<<< HEAD
-    setError('');
-
-    const result = await register(email, password, name);
-    
-    if (result.success) {
-      onNavigate('home');
-    } else {
-      setError(result.error || 'Sign up failed');
-    }
-    
-    setLoading(false);
-  };
-
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        // Fetch user info from Google
-        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        }).then(res => res.json());
-
-        // Create a mock Google user object
-        const googleUser = {
-          getBasicProfile: () => ({
-            getEmail: () => userInfo.email,
-            getName: () => userInfo.name,
-            getId: () => userInfo.sub,
-            getImageUrl: () => userInfo.picture,
-          }),
-        };
-
-        const result = await loginWithGoogle(googleUser);
-        
-        if (result.success) {
-          onNavigate('home');
-        } else {
-          setError(result.error || 'Google sign up failed');
-        }
-      } catch (err: any) {
-        setError('Google sign up failed. Please try again.');
-      }
-    },
-    onError: () => {
-      setError('Google sign up failed. Please try again.');
-    },
-  });
-=======
     try {
       const confirmationResult = await sendOTP(phoneNumber);
       onNavigate('otp', { confirmationResult, phoneNumber, fullName, isSignup: true });
@@ -212,7 +131,6 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
       setLoading(false);
     }
   };
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
 
   return (
     <div className="h-full flex flex-col bg-white px-6">
@@ -228,22 +146,10 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
         <p className="text-[#666666]">Start your earning journey today</p>
       </div>
 
-<<<<<<< HEAD
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-[12px]">
-          <p className="text-red-600 text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Form */}
-      <div className="flex-1 space-y-4 overflow-y-auto">
-=======
       {/* Email Signup - Primary Method */}
       <div className="flex-1 space-y-4">
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
         <div>
-          <label className="block text-[#111111] mb-2">Full Name *</label>
+          <label className="block text-[#111111] mb-2">Full Name</label>
           <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
             <User className="w-5 h-5 text-[#666666]" />
             <input
@@ -257,46 +163,15 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
                 }
               }}
               className="flex-1 bg-transparent outline-none text-[#111111]"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[#111111] mb-2">Email *</label>
+          <label className="block text-[#111111] mb-2">Email</label>
           <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
             <Mail className="w-5 h-5 text-[#666666]" />
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 bg-transparent outline-none text-[#111111]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                data-form-type="other"
-                onKeyDown={(e) => {
-                  // Prevent autofill on backspace/delete
-                  if (e.key === 'Backspace' || e.key === 'Delete') {
-                    e.stopPropagation();
-                  }
-                }}
-              />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[#111111] mb-2">Password *</label>
-          <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
-            <Lock className="w-5 h-5 text-[#666666]" />
             <input
-<<<<<<< HEAD
-              type="password"
-              placeholder="Enter password (min 6 characters)"
-=======
               type="email"
               placeholder="Enter your email"
               value={email}
@@ -306,27 +181,12 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
                   handleEmailSignup();
                 }
               }}
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
               className="flex-1 bg-transparent outline-none text-[#111111]"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
         </div>
 
         <div>
-<<<<<<< HEAD
-          <label className="block text-[#111111] mb-2">Confirm Password *</label>
-          <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
-            <Lock className="w-5 h-5 text-[#666666]" />
-            <input
-              type="password"
-              placeholder="Confirm your password"
-              className="flex-1 bg-transparent outline-none text-[#111111]"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSignup()}
-=======
           <label className="block text-[#111111] mb-2">Password</label>
           <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-[16px] px-4 py-4">
             <input
@@ -340,20 +200,14 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
                 }
               }}
               className="flex-1 bg-transparent outline-none text-[#111111]"
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
             />
           </div>
         </div>
 
         <Button 
           fullWidth 
-<<<<<<< HEAD
-          onClick={handleSignup}
-          disabled={loading}
-=======
           onClick={handleEmailSignup}
           disabled={loading || !fullName || !email || !password || password.length < 6}
->>>>>>> 95a7a5e7a05734a6107330862d5c52cfb36e0c4d
         >
           {loading ? 'Creating Account...' : 'Sign Up'}
         </Button>
@@ -423,8 +277,9 @@ export function SignupScreen({ onNavigate }: SignupScreenProps) {
 
         {/* Google Sign Up */}
         <button 
-          onClick={() => googleLogin()}
-          className="w-full bg-white border-2 border-gray-200 rounded-[16px] px-6 py-4 flex items-center justify-center gap-3 hover:border-[#6B4BFF] transition-all"
+          onClick={handleGoogleSignup}
+          disabled={loading}
+          className="w-full bg-white border-2 border-gray-200 rounded-[16px] px-6 py-4 flex items-center justify-center gap-3 hover:border-[#6B4BFF] transition-all disabled:opacity-50"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

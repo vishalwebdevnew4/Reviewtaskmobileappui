@@ -163,6 +163,34 @@ export const getReviewById = async (reviewId: string): Promise<Review | null> =>
 };
 
 /**
+ * Get reviews by task ID
+ */
+export const getReviewsByTaskId = async (taskId: string): Promise<Review[]> => {
+  try {
+    const reviewsRef = collection(db, 'reviews');
+    const q = query(
+      reviewsRef,
+      where('taskId', '==', taskId),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as Review;
+    });
+  } catch (error: any) {
+    console.error('Error fetching reviews by task:', error);
+    return [];
+  }
+};
+
+/**
  * Get pending earnings for user
  */
 export const getPendingEarnings = async (userId: string): Promise<number> => {

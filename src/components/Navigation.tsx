@@ -14,8 +14,8 @@ export function Navigation({ active, onNavigate }: NavigationProps) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 safe-area-bottom">
-      <div className="flex items-center justify-around max-w-[414px] mx-auto">
+    <div className="sticky bottom-0 w-full bg-white border-t border-gray-200 px-6 py-3 safe-area-bottom z-50 shadow-lg mt-auto">
+      <div className="flex items-center justify-around w-full">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
